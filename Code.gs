@@ -5,6 +5,8 @@ const SHEET_NAMES = {
 };
 
 const EMAIL_ENCOMENDAS = 'drogariasconceitocm@gmail.com';
+const HANDOVER_SPREADSHEET_ID_KEY = 'HANDOVER_SPREADSHEET_ID';
+const HANDOVER_SPREADSHEET_TITLE = 'Handover Drogarias Conceito';
 
 const HEADERS = {
   Geral: ['ID', 'Timestamp', 'Autor', 'Descricao', 'Resolvido'],
@@ -62,8 +64,46 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+function getSpreadsheet_() {
+  const properties = PropertiesService.getScriptProperties();
+  const spreadsheetId = sanitizeText_(properties.getProperty(HANDOVER_SPREADSHEET_ID_KEY));
+
+  if (spreadsheetId) {
+    try {
+      return SpreadsheetApp.openById(spreadsheetId);
+    } catch (error) {
+      throw new Error(
+        'Nao foi possivel abrir a planilha configurada em ' +
+          HANDOVER_SPREADSHEET_ID_KEY +
+          ' (' +
+          spreadsheetId +
+          '). Verifique o ID e as permissoes da conta.'
+      );
+    }
+  }
+
+  try {
+    const spreadsheet = SpreadsheetApp.create(HANDOVER_SPREADSHEET_TITLE);
+    properties.setProperty(HANDOVER_SPREADSHEET_ID_KEY, spreadsheet.getId());
+    return spreadsheet;
+  } catch (error) {
+    throw new Error(
+      'Nao foi possivel criar a planilha do Handover automaticamente. Configure a propriedade ' +
+        HANDOVER_SPREADSHEET_ID_KEY +
+        ' com um ID valido.'
+    );
+  }
+}
+
+function getSpreadsheetIdForDebug() {
+  const spreadsheet = getSpreadsheet_();
+  const spreadsheetId = spreadsheet.getId();
+  Logger.log('HANDOVER_SPREADSHEET_ID em uso: ' + spreadsheetId);
+  return spreadsheetId;
+}
+
 function setupSpreadsheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
 
   Object.keys(HEADERS).forEach(function (sheetName) {
     const sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
@@ -78,8 +118,8 @@ function saveData(tab, data) {
     throw new Error('Aba invalida: ' + tab);
   }
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(tab);
+  const ss = getSpreadsheet_();
+  const sheet = getSheetOrThrow_(ss, tab);
   const id = Utilities.getUuid();
   const timestamp = new Date();
 
@@ -210,13 +250,9 @@ function markAsResolved(id) {
 function moveRowToResolved(sheetName, rowNumber) {
   setupSpreadsheet();
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sourceSheet = ss.getSheetByName(sheetName);
-  const archiveSheet = ss.getSheetByName(SHEET_NAMES.ARQUIVO);
-
-  if (!sourceSheet) {
-    throw new Error('Aba de origem nao encontrada: ' + sheetName);
-  }
+  const ss = getSpreadsheet_();
+  const sourceSheet = getSheetOrThrow_(ss, sheetName);
+  const archiveSheet = getSheetOrThrow_(ss, SHEET_NAMES.ARQUIVO);
 
   if (rowNumber <= 1 || rowNumber > sourceSheet.getLastRow()) {
     throw new Error('Linha invalida para arquivamento: ' + rowNumber);
@@ -239,6 +275,11 @@ function onEdit(e) {
   }
 
   const sheet = e.range.getSheet();
+  const officialSpreadsheet = getSpreadsheet_();
+  if (sheet.getParent().getId() !== officialSpreadsheet.getId()) {
+    return;
+  }
+
   const sheetName = sheet.getName();
   const rowNumber = e.range.getRow();
 
@@ -299,7 +340,7 @@ function include(filename) {
 }
 
 function fetchSheetItems_(sheetName) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const sheet = getSheetOrThrow_(getSpreadsheet_(), sheetName);
   const lastRow = sheet.getLastRow();
 
   if (lastRow <= 1) {
@@ -398,7 +439,7 @@ function buildArchiveRow_(sheetName, item) {
 }
 
 function findRowById_(sheetName, id) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const sheet = getSheetOrThrow_(getSpreadsheet_(), sheetName);
   const lastRow = sheet.getLastRow();
 
   if (lastRow <= 1) {
@@ -428,6 +469,16 @@ function getColumnIndex_(sheet, headerName) {
   }
 
   return index + 1;
+}
+
+function getSheetOrThrow_(spreadsheet, sheetName) {
+  const sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    throw new Error(
+      'Aba obrigatoria nao encontrada na planilha ' + spreadsheet.getId() + ': ' + sheetName
+    );
+  }
+  return sheet;
 }
 
 function normalizeItemForClient_(item) {
