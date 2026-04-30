@@ -25,6 +25,7 @@ const HEADERS = {
     'Status',
     'Status_Aviso_WhatsApp',
     'Data_Aviso_WhatsApp',
+    'Preco_Venda',
   ],
   Arquivo_Resolvidos: [
     'Origem',
@@ -46,6 +47,7 @@ const HEADERS = {
     'Status_Aviso_WhatsApp',
     'Data_Aviso_WhatsApp',
     'Arquivado_Em',
+    'Preco_Venda',
   ],
 };
 
@@ -137,6 +139,7 @@ function saveData(tab, data) {
   if (tab === SHEET_NAMES.MEDICAMENTOS) {
     const tipo = sanitizeText_(data.tipo);
     const previsaoEntrega = parseDate_(data.previsaoEntrega);
+    const precoVenda = parseSalePrice_(data.precoVenda);
     if (!previsaoEntrega) {
       throw new Error('Previsao_Entrega invalida. Use o formato YYYY-MM-DD com data real.');
     }
@@ -156,6 +159,7 @@ function saveData(tab, data) {
       'Pendente',
       '',
       '',
+      precoVenda,
     ];
     sheet.appendRow(row);
 
@@ -431,6 +435,10 @@ function buildArchiveRow_(sheetName, item) {
     Status_Aviso_WhatsApp: item.Status_Aviso_WhatsApp || '',
     Data_Aviso_WhatsApp: item.Data_Aviso_WhatsApp || '',
     Arquivado_Em: new Date(),
+    Preco_Venda:
+      item.Preco_Venda === '' || item.Preco_Venda === null || item.Preco_Venda === undefined
+        ? ''
+        : item.Preco_Venda,
   };
 
   return HEADERS.Arquivo_Resolvidos.map(function (header) {
@@ -499,6 +507,7 @@ function normalizeItemForClient_(item) {
   item.Telefone = sanitizeText_(item.Telefone);
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
+  item.Preco_Venda = normalizeSalePriceForClient_(item.Preco_Venda);
 }
 
 function parseDate_(value) {
@@ -535,6 +544,73 @@ function parseDate_(value) {
 
   parsed.setHours(0, 0, 0, 0);
   return parsed;
+}
+
+function parseSalePrice_(value) {
+  if (value === null || value === undefined || String(value).trim() === '') {
+    return '';
+  }
+
+  if (typeof value === 'number') {
+    if (isNaN(value)) {
+      throw new Error('Preco de venda invalido. Informe um valor numerico valido.');
+    }
+    if (value < 0) {
+      throw new Error('Preco de venda nao pode ser negativo.');
+    }
+    return roundCurrency_(value);
+  }
+
+  let normalized = String(value).trim();
+  normalized = normalized.replace(/\s/g, '').replace(/^R\$/i, '');
+
+  if (!normalized) {
+    return '';
+  }
+
+  if (normalized.indexOf('-') === 0) {
+    throw new Error('Preco de venda nao pode ser negativo.');
+  }
+
+  if (normalized.indexOf(',') >= 0 && normalized.indexOf('.') >= 0) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (normalized.indexOf(',') >= 0) {
+    normalized = normalized.replace(',', '.');
+  }
+
+  const parsed = Number(normalized);
+  if (isNaN(parsed)) {
+    throw new Error('Preco de venda invalido. Informe um valor numerico valido.');
+  }
+  if (parsed < 0) {
+    throw new Error('Preco de venda nao pode ser negativo.');
+  }
+
+  return roundCurrency_(parsed);
+}
+
+function normalizeSalePriceForClient_(value) {
+  if (value === null || value === undefined || value === '') {
+    return '';
+  }
+
+  if (typeof value === 'number') {
+    if (isNaN(value)) {
+      return '';
+    }
+    return roundCurrency_(value);
+  }
+
+  try {
+    const parsed = parseSalePrice_(value);
+    return parsed === '' ? '' : parsed;
+  } catch (error) {
+    return sanitizeText_(value);
+  }
+}
+
+function roundCurrency_(value) {
+  return Math.round(Number(value) * 100) / 100;
 }
 
 function formatDateForInput_(date) {

@@ -255,6 +255,17 @@
                 <input id="medicamento" name="medicamento">
               </div>
 
+              <div class="field">
+                <label for="precoVenda">Preço de venda</label>
+                <input
+                  id="precoVenda"
+                  name="precoVenda"
+                  type="text"
+                  inputmode="decimal"
+                  placeholder="R$ 0,00"
+                >
+              </div>
+
               <div class="field checkbox">
                 <input id="prePago" name="prePago" type="checkbox">
                 <label for="prePago">Pre-pago</label>
@@ -347,6 +358,16 @@
 
         const tab = category.value;
         const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
+
+        if (tab === 'Medicamentos') {
+          const priceResult = normalizePriceInput_(payload.precoVenda);
+          if (priceResult.error) {
+            setStatus(formStatus, priceResult.error, true);
+            return;
+          }
+          payload.precoVenda = priceResult.value;
+        }
+
         const validationError = validatePayload(tab, payload);
 
         if (validationError) {
@@ -384,6 +405,7 @@
         return {
           tipo: document.getElementById('tipo').value,
           medicamento: document.getElementById('medicamento').value,
+          precoVenda: document.getElementById('precoVenda').value,
           prePago: document.getElementById('prePago').checked,
           cliente: document.getElementById('cliente').value,
           telefone: document.getElementById('telefone').value,
@@ -462,6 +484,7 @@
         const status = [
           'Tipo: ' + (item.Tipo || '-'),
           'Status: ' + (item.Status || 'Pendente'),
+          'Preço de venda: ' + (formatCurrencyBr_(item.Preco_Venda) || '-'),
           'Comprado: ' + (item.Comprado ? 'Sim' : 'Nao'),
           'Entregue: ' + (item.Entregue ? 'Sim' : 'Nao'),
           'Pre-pago: ' + (item.Pre_Pago ? 'Sim' : 'Nao'),
@@ -584,6 +607,55 @@
           .trim()
           .toLowerCase();
         return Boolean(item.Comprado) || Boolean(item.Entregue) || status === 'resolvido parcialmente';
+      }
+
+      function normalizePriceInput_(value) {
+        if (value === null || value === undefined || String(value).trim() === '') {
+          return { value: '', error: '' };
+        }
+
+        let normalized = String(value).trim();
+        normalized = normalized.replace(/\s/g, '').replace(/^R\$/i, '');
+
+        if (!normalized) {
+          return { value: '', error: '' };
+        }
+
+        if (normalized.indexOf('-') === 0) {
+          return { value: '', error: 'Preço de venda não pode ser negativo.' };
+        }
+
+        if (normalized.indexOf(',') >= 0 && normalized.indexOf('.') >= 0) {
+          normalized = normalized.replace(/\./g, '').replace(',', '.');
+        } else if (normalized.indexOf(',') >= 0) {
+          normalized = normalized.replace(',', '.');
+        }
+
+        const parsed = Number(normalized);
+        if (Number.isNaN(parsed)) {
+          return { value: '', error: 'Preço de venda inválido. Informe um valor numérico válido.' };
+        }
+
+        if (parsed < 0) {
+          return { value: '', error: 'Preço de venda não pode ser negativo.' };
+        }
+
+        return {
+          value: Math.round(parsed * 100) / 100,
+          error: '',
+        };
+      }
+
+      function formatCurrencyBr_(value) {
+        const normalized = normalizePriceInput_(value);
+        if (normalized.error || normalized.value === '') {
+          return '';
+        }
+
+        return Number(normalized.value).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        });
       }
 
       function isOverdue(item) {
