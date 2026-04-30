@@ -203,6 +203,117 @@
         padding: 18px 0 0;
       }
 
+      .checklist-section {
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #f9fafb;
+        padding: 12px;
+      }
+
+      .checklist-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .checklist-header h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .checklist-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 10px 0;
+      }
+
+      .summary-chip {
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #1e3a8a;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 10px;
+      }
+
+      .summary-chip.percentual {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .checklist-group {
+        margin-top: 12px;
+      }
+
+      .checklist-group h4 {
+        margin: 0 0 8px;
+        color: var(--muted);
+        font-size: 13px;
+        text-transform: uppercase;
+      }
+
+      .checklist-item {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        margin-bottom: 8px;
+        padding: 10px;
+      }
+
+      .checklist-item.late {
+        border-color: #ef4444;
+        background: #fee2e2;
+      }
+
+      .checklist-item-title {
+        font-weight: 700;
+      }
+
+      .checklist-item-description {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 3px;
+      }
+
+      .checklist-item-meta {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 6px;
+      }
+
+      .checklist-item-actions {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+
+      .checklist-item-actions button {
+        font-size: 12px;
+        margin: 0;
+        padding: 8px 10px;
+      }
+
+      .checklist-observation {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .checklist-observation input {
+        margin: 0;
+      }
+
+      .checklist-observation button {
+        margin: 0;
+        font-size: 12px;
+        padding: 8px 10px;
+      }
+
       @media (max-width: 900px) {
         .grid {
           grid-template-columns: 1fr;
@@ -302,6 +413,24 @@
 
         <div class="card">
           <h2>Dashboard de pendencias</h2>
+
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>Checklist do Turno</h3>
+              <button
+                id="generate-checklist-button"
+                class="light"
+                type="button"
+                onclick="generateChecklistToday()"
+              >
+                Gerar checklist de hoje
+              </button>
+            </div>
+            <div id="checklist-summary" class="checklist-summary"></div>
+            <div id="checklist-container"></div>
+            <div id="checklist-status" class="status" aria-live="polite"></div>
+          </section>
+
           <div class="table-wrap">
             <table>
               <thead>
@@ -336,6 +465,10 @@
       const dashboardBody = document.getElementById('dashboard-body');
       const emptyState = document.getElementById('empty-state');
       const saveButton = document.getElementById('save-button');
+      const checklistContainer = document.getElementById('checklist-container');
+      const checklistSummary = document.getElementById('checklist-summary');
+      const checklistStatus = document.getElementById('checklist-status');
+      const generateChecklistButton = document.getElementById('generate-checklist-button');
 
       category.addEventListener('change', updateVisibleFields);
       form.addEventListener('submit', handleSubmit);
@@ -432,6 +565,8 @@
       }
 
       function renderDashboard() {
+        renderChecklist();
+
         const rows = [
           ...dashboardData.geral.map(mapGeneralRow),
           ...dashboardData.medicamentos.map(mapMedicineRow),
@@ -460,6 +595,212 @@
 
           dashboardBody.appendChild(tr);
         });
+      }
+
+      function renderChecklist() {
+        if (!checklistContainer || !checklistSummary) {
+          return;
+        }
+
+        const checklist = dashboardData.checklistTurno;
+        const items = checklist.items || [];
+        const summary = checklist.summary || buildChecklistSummary_(items);
+        const lateWindow = Boolean(checklist.isAfterDeadline);
+
+        checklistSummary.innerHTML = buildChecklistSummaryChips_(summary, checklist.turno, checklist.horarioReferencia);
+        checklistContainer.innerHTML = '';
+
+        if (items.length === 0) {
+          checklistContainer.innerHTML = '<div class="empty">Checklist do turno ainda sem itens.</div>';
+          return;
+        }
+
+        const grouped = groupChecklistByCategory_(items);
+        const groupHtml = Object.keys(grouped)
+          .map(function (category) {
+            const itemsHtml = grouped[category]
+              .map(function (item) {
+                return buildChecklistItemHtml_(item, lateWindow);
+              })
+              .join('');
+
+            return (
+              '<div class="checklist-group">' +
+              '<h4>' +
+              escapeHtml(category) +
+              '</h4>' +
+              itemsHtml +
+              '</div>'
+            );
+          })
+          .join('');
+
+        checklistContainer.innerHTML = groupHtml;
+      }
+
+      function buildChecklistSummary_(items) {
+        const totalItens = items.length;
+        const itensFeitos = items.filter(function (item) {
+          return formatChecklistStatus_(item.Status) === 'Feito';
+        }).length;
+        const itensNaoAplicaveis = items.filter(function (item) {
+          return formatChecklistStatus_(item.Status) === 'Não aplicável';
+        }).length;
+        const itensPendentes = items.filter(function (item) {
+          return formatChecklistStatus_(item.Status) === 'Pendente';
+        }).length;
+        const percentualConcluido =
+          totalItens > 0 ? Math.round(((itensFeitos + itensNaoAplicaveis) / totalItens) * 100) : 0;
+
+        return {
+          totalItens: totalItens,
+          itensFeitos: itensFeitos,
+          itensNaoAplicaveis: itensNaoAplicaveis,
+          itensPendentes: itensPendentes,
+          percentualConcluido: percentualConcluido,
+        };
+      }
+
+      function buildChecklistSummaryChips_(summary, turno, horarioReferencia) {
+        return [
+          '<span class="summary-chip">Turno: ' + escapeHtml(turno || 'Manhã') + '</span>',
+          '<span class="summary-chip">Referência: ' + escapeHtml(horarioReferencia || '07:00') + '</span>',
+          '<span class="summary-chip">Total: ' + escapeHtml(summary.totalItens) + '</span>',
+          '<span class="summary-chip">Feitos: ' + escapeHtml(summary.itensFeitos) + '</span>',
+          '<span class="summary-chip">Pendentes: ' + escapeHtml(summary.itensPendentes) + '</span>',
+          '<span class="summary-chip percentual">Concluído: ' +
+            escapeHtml(summary.percentualConcluido) +
+            '%</span>',
+        ].join('');
+      }
+
+      function groupChecklistByCategory_(items) {
+        return items.reduce(function (groups, item) {
+          const category = item.Categoria || 'Sem categoria';
+          if (!groups[category]) {
+            groups[category] = [];
+          }
+          groups[category].push(item);
+          return groups;
+        }, {});
+      }
+
+      function buildChecklistItemHtml_(item, lateWindow) {
+        const status = formatChecklistStatus_(item.Status);
+        const lateClass = lateWindow && status === 'Pendente' ? ' late' : '';
+        const observationInputId = buildChecklistObservationInputId_(item.ID);
+        const checkInfo = item.Data_Hora_Check
+          ? 'Última marcação: ' + formatDateTime(item.Data_Hora_Check)
+          : 'Sem marcação';
+
+        return `
+          <div class="checklist-item${lateClass}">
+            <div class="checklist-item-title">${escapeHtml(item.Item)}</div>
+            <div class="checklist-item-description">${escapeHtml(item.Descricao || '')}</div>
+            <div class="checklist-item-meta">Status: ${escapeHtml(status)} | ${escapeHtml(checkInfo)}</div>
+            <div class="checklist-item-actions">
+              <button type="button" onclick="updateChecklistStatus('${escapeAttribute(item.ID)}', 'Feito')">Feito</button>
+              <button type="button" class="secondary" onclick="updateChecklistStatus('${escapeAttribute(
+                item.ID
+              )}', 'Não aplicável')">N/A</button>
+              <button type="button" class="light" onclick="updateChecklistStatus('${escapeAttribute(
+                item.ID
+              )}', 'Pendente')">Pendente</button>
+            </div>
+            <div class="checklist-observation">
+              <input
+                id="${escapeAttribute(observationInputId)}"
+                type="text"
+                placeholder="Observação"
+                value="${escapeAttribute(item.Observacao || '')}"
+              >
+              <button
+                type="button"
+                class="light"
+                onclick="saveChecklistObservation('${escapeAttribute(item.ID)}', '${escapeAttribute(
+                  observationInputId
+                )}')"
+              >
+                Salvar observação
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function updateChecklistStatus(id, status) {
+        setStatus(checklistStatus, 'Atualizando checklist...');
+        setChecklistButtonsDisabled(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            dashboardData = normalizeData(response.items);
+            renderDashboard();
+            setStatus(checklistStatus, 'Checklist atualizado.');
+            setChecklistButtonsDisabled(false);
+          })
+          .withFailureHandler(function (error) {
+            setStatus(checklistStatus, getErrorMessage(error), true);
+            setChecklistButtonsDisabled(false);
+          })
+          .updateChecklistItemStatus(id, status, '');
+      }
+
+      function saveChecklistObservation(id, inputId) {
+        const input = document.getElementById(inputId);
+        const observacao = input ? input.value : '';
+
+        setStatus(checklistStatus, 'Salvando observação...');
+        setChecklistButtonsDisabled(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            dashboardData = normalizeData(response.items);
+            renderDashboard();
+            setStatus(checklistStatus, 'Observação salva.');
+            setChecklistButtonsDisabled(false);
+          })
+          .withFailureHandler(function (error) {
+            setStatus(checklistStatus, getErrorMessage(error), true);
+            setChecklistButtonsDisabled(false);
+          })
+          .updateChecklistItemObservation(id, observacao, '');
+      }
+
+      function generateChecklistToday() {
+        setStatus(checklistStatus, 'Gerando checklist de hoje...');
+        setChecklistButtonsDisabled(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            dashboardData = normalizeData(response.items);
+            renderDashboard();
+            setStatus(checklistStatus, 'Checklist do turno disponível.');
+            setChecklistButtonsDisabled(false);
+          })
+          .withFailureHandler(function (error) {
+            setStatus(checklistStatus, getErrorMessage(error), true);
+            setChecklistButtonsDisabled(false);
+          })
+          .generateTodayMorningChecklist();
+      }
+
+      function formatChecklistStatus_(status) {
+        const normalized = String(status || '')
+          .trim()
+          .toLowerCase();
+
+        if (normalized === 'feito') {
+          return 'Feito';
+        }
+        if (normalized === 'não aplicável' || normalized === 'nao aplicavel' || normalized === 'n/a') {
+          return 'Não aplicável';
+        }
+        return 'Pendente';
+      }
+
+      function buildChecklistObservationInputId_(id) {
+        return 'checklist-observacao-' + String(id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
       }
 
       function mapGeneralRow(item) {
@@ -676,6 +1017,31 @@
         return {
           geral: Array.isArray(data && data.geral) ? data.geral : [],
           medicamentos: Array.isArray(data && data.medicamentos) ? data.medicamentos : [],
+          checklistTurno: normalizeChecklistData_(data && data.checklistTurno),
+        };
+      }
+
+      function normalizeChecklistData_(checklist) {
+        const items = Array.isArray(checklist && checklist.items) ? checklist.items : [];
+        const summary =
+          checklist && checklist.summary && typeof checklist.summary === 'object'
+            ? checklist.summary
+            : buildChecklistSummary_(items);
+
+        return {
+          data: checklist && checklist.data ? checklist.data : '',
+          turno: checklist && checklist.turno ? checklist.turno : 'Manhã',
+          horarioReferencia:
+            checklist && checklist.horarioReferencia ? checklist.horarioReferencia : '07:00',
+          isAfterDeadline: Boolean(checklist && checklist.isAfterDeadline),
+          items: items,
+          summary: {
+            totalItens: Number(summary.totalItens || 0),
+            itensFeitos: Number(summary.itensFeitos || 0),
+            itensNaoAplicaveis: Number(summary.itensNaoAplicaveis || 0),
+            itensPendentes: Number(summary.itensPendentes || 0),
+            percentualConcluido: Number(summary.percentualConcluido || 0),
+          },
         };
       }
 
@@ -719,6 +1085,20 @@
 
       function setDashboardButtonsDisabled(disabled) {
         dashboardBody.querySelectorAll('button').forEach(function (button) {
+          button.disabled = disabled;
+        });
+      }
+
+      function setChecklistButtonsDisabled(disabled) {
+        if (generateChecklistButton) {
+          generateChecklistButton.disabled = disabled;
+        }
+
+        if (!checklistContainer) {
+          return;
+        }
+
+        checklistContainer.querySelectorAll('button').forEach(function (button) {
           button.disabled = disabled;
         });
       }

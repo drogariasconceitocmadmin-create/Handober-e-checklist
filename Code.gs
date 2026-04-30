@@ -2,11 +2,23 @@ const SHEET_NAMES = {
   GERAL: 'Geral',
   MEDICAMENTOS: 'Medicamentos',
   ARQUIVO: 'Arquivo_Resolvidos',
+  CHECKLIST: 'Checklist_Turnos',
 };
 
 const EMAIL_ENCOMENDAS = 'drogariasconceitocm@gmail.com';
 const HANDOVER_SPREADSHEET_ID_KEY = 'HANDOVER_SPREADSHEET_ID';
 const HANDOVER_SPREADSHEET_TITLE = 'Handover Drogarias Conceito';
+const HANDOVER_TIMEZONE = 'America/Sao_Paulo';
+
+const CHECKLIST_TURNO_MANHA = 'Manhã';
+const CHECKLIST_HORARIO_REFERENCIA = '07:00';
+const CHECKLIST_ALERT_HHMM = '07:30';
+
+const CHECKLIST_STATUS = {
+  PENDENTE: 'Pendente',
+  FEITO: 'Feito',
+  NA: 'Não aplicável',
+};
 
 const HEADERS = {
   Geral: ['ID', 'Timestamp', 'Autor', 'Descricao', 'Resolvido'],
@@ -48,6 +60,19 @@ const HEADERS = {
     'Data_Aviso_WhatsApp',
     'Arquivado_Em',
     'Preco_Venda',
+  ],
+  Checklist_Turnos: [
+    'ID',
+    'Data',
+    'Turno',
+    'Horario_Referencia',
+    'Categoria',
+    'Item',
+    'Descricao',
+    'Status',
+    'Responsavel',
+    'Data_Hora_Check',
+    'Observacao',
   ],
 };
 
@@ -111,6 +136,309 @@ function setupSpreadsheet() {
     const sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
     ensureHeaders_(sheet, HEADERS[sheetName]);
   });
+}
+
+function getChecklistTemplate_() {
+  return [
+    {
+      categoria: 'Estrutura e Ambiente',
+      item: 'Climatização',
+      descricao: 'Ligar ar-condicionado e cortina de ar',
+    },
+    {
+      categoria: 'Estrutura e Ambiente',
+      item: 'Iluminação',
+      descricao: 'Acender luzes do salão, fachada e tótens',
+    },
+    {
+      categoria: 'Estrutura e Ambiente',
+      item: 'Som ambiente',
+      descricao: 'Ligar rádio interna em volume agradável',
+    },
+    {
+      categoria: 'Estrutura e Ambiente',
+      item: 'Fachada',
+      descricao: 'Verificar limpeza da calçada e se há obstruções na entrada',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'Servidor',
+      descricao: 'Ligar e verificar se o banco de dados carregou corretamente',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'PDVs e Balcão',
+      descricao: 'Ligar computadores, monitores e impressoras térmicas',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'Troco',
+      descricao: 'Conferir o kit de troco',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'Caixa',
+      descricao: 'Abrir e conferir',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'Handover',
+      descricao:
+        'Checar mensagens do turno anterior, limpar o que foi resolvido e programar entregas do dia de medicamentos encomendados',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'Internet e TEF',
+      descricao: 'Testar conexão e máquinas de cartão',
+    },
+    {
+      categoria: 'Sistemas e Operação',
+      item: 'Telefones/WhatsApp',
+      descricao: 'Verificar bateria, conexão e mensagens recebidas enquanto a loja estava fechada',
+    },
+    {
+      categoria: 'Higiene e Organização',
+      item: 'Pisos e Prateleiras',
+      descricao: 'Conferir limpeza geral, sem pó ou manchas',
+    },
+    {
+      categoria: 'Higiene e Organização',
+      item: 'Lixeiras',
+      descricao: 'Verificar se todas estão com sacos novos',
+    },
+    {
+      categoria: 'Higiene e Organização',
+      item: 'Banheiros e Pias',
+      descricao: 'Repor sabonete líquido e papel toalha',
+    },
+    {
+      categoria: 'Higiene e Organização',
+      item: 'Álcool em gel',
+      descricao: 'Verificar disponibilidade no balcão',
+    },
+    {
+      categoria: 'Logística de Entrega',
+      item: 'Moto',
+      descricao: 'Usar sistema para conferir condições da moto junto com entregador',
+    },
+    {
+      categoria: 'Logística de Entrega',
+      item: 'Baú/Mochila',
+      descricao: 'Verificar limpeza interna e se está seco',
+    },
+    {
+      categoria: 'Logística de Entrega',
+      item: 'Maquineta móvel',
+      descricao: 'Checar bateria da máquina de cartão de rua',
+    },
+    {
+      categoria: 'Balcão e Medicamentos',
+      item: 'Termolábeis',
+      descricao: 'Conferir e anotar temperatura da geladeira de vacinas/insulinas',
+    },
+    {
+      categoria: 'Balcão e Medicamentos',
+      item: 'Psicotrópicos',
+      descricao: 'Verificar se armário controlado está fechado e chave acessível',
+    },
+    {
+      categoria: 'Balcão e Medicamentos',
+      item: 'Reposição',
+      descricao: 'Verificar buracos nas prateleiras de curva A para abastecimento imediato',
+    },
+  ];
+}
+
+function getChecklistDateKey_(date) {
+  return Utilities.formatDate(date || new Date(), HANDOVER_TIMEZONE, 'yyyy-MM-dd');
+}
+
+function getChecklistTemplateOrderMap_() {
+  return getChecklistTemplate_().reduce(function (orderMap, checklistItem, index) {
+    orderMap[buildChecklistIdentityKey_(checklistItem.item)] = index;
+    return orderMap;
+  }, {});
+}
+
+function ensureTodayMorningChecklist_() {
+  const ss = getSpreadsheet_();
+  const sheet = getSheetOrThrow_(ss, SHEET_NAMES.CHECKLIST);
+  const headers = getHeaders_(sheet);
+  const template = getChecklistTemplate_();
+  const dateKey = getChecklistDateKey_();
+  const turno = CHECKLIST_TURNO_MANHA;
+  const identityPrefix = buildChecklistIdentityKey_(dateKey) + '|' + buildChecklistIdentityKey_(turno);
+
+  const existingKeys = new Set();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    values.forEach(function (row) {
+      const rowObject = rowToObject_(headers, row);
+      const rowDate = normalizeDateKeyCell_(rowObject.Data);
+      const rowTurno = sanitizeText_(rowObject.Turno);
+      const rowItem = sanitizeText_(rowObject.Item);
+      if (!rowDate || !rowTurno || !rowItem) {
+        return;
+      }
+
+      const rowKey =
+        buildChecklistIdentityKey_(rowDate) +
+        '|' +
+        buildChecklistIdentityKey_(rowTurno) +
+        '|' +
+        buildChecklistIdentityKey_(rowItem);
+      existingKeys.add(rowKey);
+    });
+  }
+
+  const rowsToInsert = [];
+  template.forEach(function (templateItem) {
+    const itemKey =
+      identityPrefix + '|' + buildChecklistIdentityKey_(sanitizeText_(templateItem.item));
+    if (existingKeys.has(itemKey)) {
+      return;
+    }
+
+    rowsToInsert.push([
+      Utilities.getUuid(),
+      dateKey,
+      turno,
+      CHECKLIST_HORARIO_REFERENCIA,
+      sanitizeText_(templateItem.categoria),
+      sanitizeText_(templateItem.item),
+      sanitizeText_(templateItem.descricao),
+      CHECKLIST_STATUS.PENDENTE,
+      '',
+      '',
+      '',
+    ]);
+  });
+
+  if (rowsToInsert.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+  }
+
+  return {
+    dateKey: dateKey,
+    turno: turno,
+    insertedCount: rowsToInsert.length,
+  };
+}
+
+function fetchChecklistItems_(dateKey, turno) {
+  const ss = getSpreadsheet_();
+  const sheet = getSheetOrThrow_(ss, SHEET_NAMES.CHECKLIST);
+  const headers = getHeaders_(sheet);
+  const filterDateKey = dateKey || getChecklistDateKey_();
+  const filterTurno = turno || CHECKLIST_TURNO_MANHA;
+
+  if (sheet.getLastRow() <= 1) {
+    return [];
+  }
+
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+  const orderMap = getChecklistTemplateOrderMap_();
+
+  return values
+    .map(function (row) {
+      const item = rowToObject_(headers, row);
+      normalizeChecklistItemForClient_(item);
+      return item;
+    })
+    .filter(function (item) {
+      return item.Data === filterDateKey && item.Turno === filterTurno;
+    })
+    .sort(function (a, b) {
+      const orderA = orderMap[buildChecklistIdentityKey_(a.Item)];
+      const orderB = orderMap[buildChecklistIdentityKey_(b.Item)];
+      const safeA = typeof orderA === 'number' ? orderA : Number.MAX_SAFE_INTEGER;
+      const safeB = typeof orderB === 'number' ? orderB : Number.MAX_SAFE_INTEGER;
+      if (safeA !== safeB) {
+        return safeA - safeB;
+      }
+      return String(a.Item).localeCompare(String(b.Item));
+    });
+}
+
+function getChecklistSummary_(items) {
+  const totalItens = items.length;
+  const itensFeitos = items.filter(function (item) {
+    return item.Status === CHECKLIST_STATUS.FEITO;
+  }).length;
+  const itensNaoAplicaveis = items.filter(function (item) {
+    return item.Status === CHECKLIST_STATUS.NA;
+  }).length;
+  const itensPendentes = items.filter(function (item) {
+    return item.Status === CHECKLIST_STATUS.PENDENTE;
+  }).length;
+  const concluidos = itensFeitos + itensNaoAplicaveis;
+  const percentualConcluido = totalItens > 0 ? Math.round((concluidos / totalItens) * 100) : 0;
+
+  return {
+    totalItens: totalItens,
+    itensFeitos: itensFeitos,
+    itensNaoAplicaveis: itensNaoAplicaveis,
+    itensPendentes: itensPendentes,
+    percentualConcluido: percentualConcluido,
+  };
+}
+
+function updateChecklistItemStatus(id, status, responsavel) {
+  setupSpreadsheet();
+
+  const location = findRowById_(SHEET_NAMES.CHECKLIST, id);
+  if (!location) {
+    throw new Error('Item de checklist nao encontrado: ' + id);
+  }
+
+  const normalizedStatus = parseChecklistStatusInput_(status);
+  const responsavelValue = sanitizeText_(responsavel);
+  const statusColumn = getColumnIndex_(location.sheet, 'Status');
+  const dataHoraCheckColumn = getColumnIndex_(location.sheet, 'Data_Hora_Check');
+  const responsavelColumn = getColumnIndex_(location.sheet, 'Responsavel');
+
+  location.sheet.getRange(location.rowNumber, statusColumn).setValue(normalizedStatus);
+  location.sheet
+    .getRange(location.rowNumber, dataHoraCheckColumn)
+    .setValue(normalizedStatus === CHECKLIST_STATUS.PENDENTE ? '' : new Date());
+  location.sheet.getRange(location.rowNumber, responsavelColumn).setValue(responsavelValue);
+
+  return {
+    success: true,
+    items: fetchData(),
+  };
+}
+
+function updateChecklistItemObservation(id, observacao, responsavel) {
+  setupSpreadsheet();
+
+  const location = findRowById_(SHEET_NAMES.CHECKLIST, id);
+  if (!location) {
+    throw new Error('Item de checklist nao encontrado: ' + id);
+  }
+
+  const observacaoColumn = getColumnIndex_(location.sheet, 'Observacao');
+  const responsavelColumn = getColumnIndex_(location.sheet, 'Responsavel');
+
+  location.sheet.getRange(location.rowNumber, observacaoColumn).setValue(sanitizeText_(observacao));
+  location.sheet
+    .getRange(location.rowNumber, responsavelColumn)
+    .setValue(sanitizeText_(responsavel));
+
+  return {
+    success: true,
+    items: fetchData(),
+  };
+}
+
+function generateTodayMorningChecklist() {
+  setupSpreadsheet();
+  ensureTodayMorningChecklist_();
+  return {
+    success: true,
+    items: fetchData(),
+  };
 }
 
 function saveData(tab, data) {
@@ -186,12 +514,22 @@ function saveData(tab, data) {
 
 function fetchData() {
   setupSpreadsheet();
+  const checklistContext = ensureTodayMorningChecklist_();
+  const checklistItems = fetchChecklistItems_(checklistContext.dateKey, checklistContext.turno);
 
   return {
     geral: fetchSheetItems_(SHEET_NAMES.GERAL).filter(function (item) {
       return !item.Resolvido;
     }),
     medicamentos: fetchSheetItems_(SHEET_NAMES.MEDICAMENTOS),
+    checklistTurno: {
+      data: checklistContext.dateKey,
+      turno: checklistContext.turno,
+      horarioReferencia: CHECKLIST_HORARIO_REFERENCIA,
+      isAfterDeadline: isAfterMorningDeadline_(checklistContext.dateKey),
+      items: checklistItems,
+      summary: getChecklistSummary_(checklistItems),
+    },
   };
 }
 
@@ -303,6 +641,18 @@ function onEdit(e) {
     const entregueColumn = getColumnIndex_(sheet, 'Entregue');
     if (e.range.getColumn() === compradoColumn || e.range.getColumn() === entregueColumn) {
       syncMedicationStatus_(sheet, rowNumber);
+    }
+  }
+
+  if (sheetName === SHEET_NAMES.CHECKLIST) {
+    const statusColumn = getColumnIndex_(sheet, 'Status');
+    if (e.range.getColumn() === statusColumn) {
+      const normalizedStatus = normalizeChecklistStatus_(e.value);
+      const dataHoraCheckColumn = getColumnIndex_(sheet, 'Data_Hora_Check');
+      sheet.getRange(rowNumber, statusColumn).setValue(normalizedStatus);
+      sheet
+        .getRange(rowNumber, dataHoraCheckColumn)
+        .setValue(normalizedStatus === CHECKLIST_STATUS.PENDENTE ? '' : new Date());
     }
   }
 }
@@ -508,6 +858,100 @@ function normalizeItemForClient_(item) {
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
   item.Preco_Venda = normalizeSalePriceForClient_(item.Preco_Venda);
+}
+
+function normalizeChecklistItemForClient_(item) {
+  if (item.Data_Hora_Check instanceof Date) {
+    item.Data_Hora_Check = Utilities.formatDate(
+      item.Data_Hora_Check,
+      HANDOVER_TIMEZONE,
+      "yyyy-MM-dd'T'HH:mm:ss"
+    );
+  }
+
+  item.Data = normalizeDateKeyCell_(item.Data);
+  item.Turno = sanitizeText_(item.Turno) || CHECKLIST_TURNO_MANHA;
+  item.Horario_Referencia = sanitizeText_(item.Horario_Referencia) || CHECKLIST_HORARIO_REFERENCIA;
+  item.Categoria = sanitizeText_(item.Categoria);
+  item.Item = sanitizeText_(item.Item);
+  item.Descricao = sanitizeText_(item.Descricao);
+  item.Status = normalizeChecklistStatus_(item.Status);
+  item.Responsavel = sanitizeText_(item.Responsavel);
+  item.Observacao = sanitizeText_(item.Observacao);
+}
+
+function parseChecklistStatusInput_(status) {
+  const normalized = buildChecklistIdentityKey_(status);
+  if (normalized === buildChecklistIdentityKey_(CHECKLIST_STATUS.PENDENTE)) {
+    return CHECKLIST_STATUS.PENDENTE;
+  }
+  if (normalized === buildChecklistIdentityKey_(CHECKLIST_STATUS.FEITO)) {
+    return CHECKLIST_STATUS.FEITO;
+  }
+  if (
+    normalized === buildChecklistIdentityKey_(CHECKLIST_STATUS.NA) ||
+    normalized === 'na' ||
+    normalized === 'n/a'
+  ) {
+    return CHECKLIST_STATUS.NA;
+  }
+
+  throw new Error(
+    'Status invalido para checklist. Use apenas: ' +
+      CHECKLIST_STATUS.PENDENTE +
+      ', ' +
+      CHECKLIST_STATUS.FEITO +
+      ' ou ' +
+      CHECKLIST_STATUS.NA +
+      '.'
+  );
+}
+
+function normalizeChecklistStatus_(status) {
+  try {
+    return parseChecklistStatusInput_(status);
+  } catch (error) {
+    return CHECKLIST_STATUS.PENDENTE;
+  }
+}
+
+function normalizeDateKeyCell_(value) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, HANDOVER_TIMEZONE, 'yyyy-MM-dd');
+  }
+
+  const textValue = sanitizeText_(value);
+  if (!textValue) {
+    return '';
+  }
+
+  const parsed = parseDate_(textValue);
+  if (!parsed) {
+    return '';
+  }
+
+  return Utilities.formatDate(parsed, HANDOVER_TIMEZONE, 'yyyy-MM-dd');
+}
+
+function isAfterMorningDeadline_(dateKey) {
+  const currentDateKey = getChecklistDateKey_();
+  if (dateKey < currentDateKey) {
+    return true;
+  }
+  if (dateKey > currentDateKey) {
+    return false;
+  }
+
+  const hhmmNow = Utilities.formatDate(new Date(), HANDOVER_TIMEZONE, 'HH:mm');
+  return hhmmNow >= CHECKLIST_ALERT_HHMM;
+}
+
+function buildChecklistIdentityKey_(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 }
 
 function parseDate_(value) {
