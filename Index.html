@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitacoes Drogaria</title>
+    <style>
+      :root {
+        --bg: #f4f6f8;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --border: #d1d5db;
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --success: #15803d;
+        --danger-bg: #fecaca;
+        --danger-text: #7f1d1d;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      .app {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .header {
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        margin: 0 0 6px;
+        font-size: 28px;
+      }
+
+      .header p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 380px) 1fr;
+        gap: 20px;
+        align-items: start;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        padding: 18px;
+      }
+
+      .card h2 {
+        margin: 0 0 14px;
+        font-size: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 700;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font: inherit;
+        padding: 10px;
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .field {
+        margin-bottom: 14px;
+      }
+
+      .checkbox {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .checkbox input {
+        width: auto;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        border: 0;
+        border-radius: 8px;
+        background: var(--primary);
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+        padding: 10px 12px;
+      }
+
+      button:hover {
+        background: var(--primary-dark);
+      }
+
+      button.secondary {
+        background: var(--success);
+      }
+
+      button.whatsapp {
+        background: #16a34a;
+      }
+
+      button.whatsapp:hover {
+        background: #15803d;
+      }
+
+      button.light {
+        background: #e5e7eb;
+        color: var(--text);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.65;
+      }
+
+      .status {
+        min-height: 22px;
+        margin-top: 12px;
+        color: var(--muted);
+        font-weight: 700;
+      }
+
+      .status.error {
+        color: var(--danger-text);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 860px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--border);
+        padding: 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+      }
+
+      tr.overdue {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+        font-weight: 700;
+      }
+
+      .pill {
+        display: inline-block;
+        border-radius: 999px;
+        background: #eef2ff;
+        color: #3730a3;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 8px;
+      }
+
+      .empty {
+        color: var(--muted);
+        padding: 18px 0 0;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <h1>Solicitacoes Drogaria</h1>
+        <p>Cadastre solicitacoes e acompanhe pendencias em tempo real.</p>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Novo registro</h2>
+          <form id="request-form">
+            <div class="field">
+              <label for="category">Categoria</label>
+              <select id="category" name="category">
+                <option value="Geral">Geral</option>
+                <option value="Medicamentos">Medicamentos</option>
+              </select>
+            </div>
+
+            <div id="general-fields">
+              <div class="field">
+                <label for="autor">Autor</label>
+                <input id="autor" name="autor" autocomplete="name">
+              </div>
+
+              <div class="field">
+                <label for="descricao">Descricao</label>
+                <textarea id="descricao" name="descricao"></textarea>
+              </div>
+            </div>
+
+            <div id="medicine-fields" hidden>
+              <div class="field">
+                <label for="tipo">Tipo</label>
+                <select id="tipo" name="tipo">
+                  <option value="Encomenda">Encomenda</option>
+                  <option value="Falta">Falta</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="medicamento">Medicamento</label>
+                <input id="medicamento" name="medicamento">
+              </div>
+
+              <div class="field checkbox">
+                <input id="prePago" name="prePago" type="checkbox">
+                <label for="prePago">Pre-pago</label>
+              </div>
+
+              <div class="field">
+                <label for="cliente">Cliente</label>
+                <input id="cliente" name="cliente">
+              </div>
+
+              <div class="field">
+                <label for="telefone">Telefone</label>
+                <input id="telefone" name="telefone" placeholder="(11) 91234-5678">
+              </div>
+
+              <div class="field">
+                <label for="atendente">Atendente</label>
+                <input id="atendente" name="atendente">
+              </div>
+
+              <div class="field">
+                <label for="previsaoEntrega">Previsao de entrega</label>
+                <input id="previsaoEntrega" name="previsaoEntrega" type="date">
+              </div>
+            </div>
+
+            <div class="actions">
+              <button id="save-button" type="submit">Salvar</button>
+              <button class="light" type="reset">Limpar</button>
+            </div>
+            <div id="form-status" class="status" aria-live="polite"></div>
+          </form>
+        </div>
+
+        <div class="card">
+          <h2>Dashboard de pendencias</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Origem</th>
+                  <th>Data</th>
+                  <th>Descricao / Medicamento</th>
+                  <th>Responsavel / Cliente</th>
+                  <th>Previsao</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-body"></tbody>
+            </table>
+          </div>
+          <div id="empty-state" class="empty" hidden>Nenhuma pendencia aberta.</div>
+          <div id="dashboard-status" class="status" aria-live="polite"></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      let dashboardData = parseInitialDataB64('<?= initialDataB64 ?>');
+
+      const form = document.getElementById('request-form');
+      const category = document.getElementById('category');
+      const generalFields = document.getElementById('general-fields');
+      const medicineFields = document.getElementById('medicine-fields');
+      const formStatus = document.getElementById('form-status');
+      const dashboardStatus = document.getElementById('dashboard-status');
+      const dashboardBody = document.getElementById('dashboard-body');
+      const emptyState = document.getElementById('empty-state');
+      const saveButton = document.getElementById('save-button');
+
+      category.addEventListener('change', updateVisibleFields);
+      form.addEventListener('submit', handleSubmit);
+      form.addEventListener('reset', function () {
+        setTimeout(updateVisibleFields, 0);
+      });
+
+      renderDashboard();
+
+      function updateVisibleFields() {
+        const isMedicine = category.value === 'Medicamentos';
+        generalFields.hidden = isMedicine;
+        medicineFields.hidden = !isMedicine;
+        clearStatus(formStatus);
+      }
+
+      function handleSubmit(event) {
+        event.preventDefault();
+        clearStatus(formStatus);
+
+        const tab = category.value;
+        const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
+        const validationError = validatePayload(tab, payload);
+
+        if (validationError) {
+          setStatus(formStatus, validationError, true);
+          return;
+        }
+
+        setLoading(true);
+        setStatus(formStatus, 'Salvando...');
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            dashboardData = normalizeData(response.items);
+            renderDashboard();
+            form.reset();
+            updateVisibleFields();
+            setStatus(formStatus, 'Registro salvo com sucesso.');
+            setLoading(false);
+          })
+          .withFailureHandler(function (error) {
+            setStatus(formStatus, getErrorMessage(error), true);
+            setLoading(false);
+          })
+          .saveData(tab, payload);
+      }
+
+      function getGeneralPayload() {
+        return {
+          autor: document.getElementById('autor').value,
+          descricao: document.getElementById('descricao').value,
+        };
+      }
+
+      function getMedicinePayload() {
+        return {
+          tipo: document.getElementById('tipo').value,
+          medicamento: document.getElementById('medicamento').value,
+          prePago: document.getElementById('prePago').checked,
+          cliente: document.getElementById('cliente').value,
+          telefone: document.getElementById('telefone').value,
+          atendente: document.getElementById('atendente').value,
+          previsaoEntrega: document.getElementById('previsaoEntrega').value,
+        };
+      }
+
+      function validatePayload(tab, payload) {
+        if (tab === 'Geral') {
+          if (!payload.autor.trim()) return 'Informe o autor.';
+          if (!payload.descricao.trim()) return 'Informe a descricao.';
+        }
+
+        if (tab === 'Medicamentos') {
+          if (!payload.medicamento.trim()) return 'Informe o medicamento.';
+          if (!payload.cliente.trim()) return 'Informe o cliente.';
+          if (!payload.telefone.trim()) return 'Informe o telefone do cliente.';
+          if (!payload.atendente.trim()) return 'Informe o atendente.';
+          if (!payload.previsaoEntrega) return 'Informe a previsao de entrega.';
+        }
+
+        return '';
+      }
+
+      function renderDashboard() {
+        const rows = [
+          ...dashboardData.geral.map(mapGeneralRow),
+          ...dashboardData.medicamentos.map(mapMedicineRow),
+        ].sort(function (a, b) {
+          return String(a.timestamp).localeCompare(String(b.timestamp));
+        });
+
+        dashboardBody.innerHTML = '';
+        emptyState.hidden = rows.length > 0;
+
+        rows.forEach(function (row) {
+          const tr = document.createElement('tr');
+          if (row.overdue) {
+            tr.classList.add('overdue');
+          }
+
+          tr.innerHTML = [
+            '<td><span class="pill">' + escapeHtml(row.origin) + '</span></td>',
+            '<td>' + escapeHtml(formatDateTime(row.timestamp)) + '</td>',
+            '<td>' + escapeHtml(row.description) + '</td>',
+            '<td>' + escapeHtml(row.person) + '</td>',
+            '<td>' + escapeHtml(row.forecast || '-') + '</td>',
+            '<td>' + row.statusHtml + '</td>',
+            '<td>' + row.actionsHtml + '</td>',
+          ].join('');
+
+          dashboardBody.appendChild(tr);
+        });
+      }
+
+      function mapGeneralRow(item) {
+        return {
+          id: item.ID,
+          origin: 'Geral',
+          timestamp: item.Timestamp,
+          description: item.Descricao,
+          person: item.Autor,
+          forecast: '',
+          overdue: false,
+          statusHtml: 'Aberto',
+          actionsHtml:
+            '<button type="button" onclick="markResolved(\'' +
+            escapeAttribute(item.ID) +
+            '\')">Marcar como Resolvido</button>',
+        };
+      }
+
+      function mapMedicineRow(item) {
+        const forecast = item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '';
+        const status = [
+          'Tipo: ' + (item.Tipo || '-'),
+          'Status: ' + (item.Status || 'Pendente'),
+          'Comprado: ' + (item.Comprado ? 'Sim' : 'Nao'),
+          'Entregue: ' + (item.Entregue ? 'Sim' : 'Nao'),
+          'Pre-pago: ' + (item.Pre_Pago ? 'Sim' : 'Nao'),
+          'Aviso WhatsApp: ' + (item.Status_Aviso_WhatsApp || 'Nao registrado'),
+        ];
+
+        if (item.Data_Aviso_WhatsApp) {
+          status.push('Data aviso: ' + formatDateTime(item.Data_Aviso_WhatsApp));
+        }
+
+        return {
+          id: item.ID,
+          origin: 'Medicamentos',
+          timestamp: item.Timestamp,
+          description: item.Medicamento,
+          person: item.Cliente + ' / ' + (item.Telefone || '-') + ' / ' + item.Atendente,
+          forecast: forecast,
+          overdue: isOverdue(item),
+          statusHtml: escapeHtml(status.join(' | ')),
+          actionsHtml: buildMedicineActionsHtml(item),
+        };
+      }
+
+      function buildMedicineActionsHtml(item) {
+        const actions = ['<div class="actions">'];
+
+        if (!item.Comprado) {
+          actions.push(
+            '<button class="secondary" type="button" onclick="markPurchased(\'' +
+              escapeAttribute(item.ID) +
+              '\')">Marcar como Comprado</button>'
+          );
+        } else {
+          actions.push('<button class="secondary" type="button" disabled>Comprado</button>');
+        }
+
+        if (!item.Entregue) {
+          actions.push(
+            '<button type="button" onclick="markDelivered(\'' +
+              escapeAttribute(item.ID) +
+              '\')">Marcar como Entregue</button>'
+          );
+        } else {
+          actions.push('<button type="button" class="light" disabled>Entregue</button>');
+        }
+
+        if (canShowWhatsAppButton(item)) {
+          actions.push(
+            '<button class="whatsapp" type="button" onclick="notifyClientWhatsApp(\'' +
+              escapeAttribute(item.ID) +
+              '\')">Avisar cliente no WhatsApp</button>'
+          );
+        }
+
+        actions.push('</div>');
+        return actions.join('');
+      }
+
+      function markPurchased(id) {
+        runDashboardAction('Marcando como comprado...', 'markAsPurchased', id);
+      }
+
+      function markDelivered(id) {
+        runDashboardAction('Marcando como entregue...', 'markAsDelivered', id);
+      }
+
+      function markResolved(id) {
+        runDashboardAction('Marcando como resolvido...', 'markAsResolved', id);
+      }
+
+      function notifyClientWhatsApp(id) {
+        setStatus(dashboardStatus, 'Registrando tentativa de aviso no WhatsApp...');
+        setDashboardButtonsDisabled(true);
+
+        const previewWindow = window.open('about:blank', '_blank');
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            dashboardData = normalizeData(response.items);
+            renderDashboard();
+            setStatus(dashboardStatus, 'Tentativa registrada. Abrindo WhatsApp...');
+            setDashboardButtonsDisabled(false);
+
+            if (previewWindow) {
+              previewWindow.location.href = response.whatsAppUrl;
+            } else {
+              window.open(response.whatsAppUrl, '_blank');
+            }
+          })
+          .withFailureHandler(function (error) {
+            if (previewWindow) {
+              previewWindow.close();
+            }
+            setStatus(dashboardStatus, getErrorMessage(error), true);
+            setDashboardButtonsDisabled(false);
+          })
+          .registerWhatsAppAttempt(id);
+      }
+
+      function runDashboardAction(message, functionName, id) {
+        setStatus(dashboardStatus, message);
+        setDashboardButtonsDisabled(true);
+
+        google.script.run
+          .withSuccessHandler(function (response) {
+            dashboardData = normalizeData(response.items);
+            renderDashboard();
+            setStatus(dashboardStatus, 'Dashboard atualizado.');
+            setDashboardButtonsDisabled(false);
+          })
+          .withFailureHandler(function (error) {
+            setStatus(dashboardStatus, getErrorMessage(error), true);
+            setDashboardButtonsDisabled(false);
+          })
+          [functionName](id);
+      }
+
+      function canShowWhatsAppButton(item) {
+        const status = String(item.Status || '')
+          .trim()
+          .toLowerCase();
+        return Boolean(item.Comprado) || Boolean(item.Entregue) || status === 'resolvido parcialmente';
+      }
+
+      function isOverdue(item) {
+        if (!item.Previsao_Entrega || item.Entregue) {
+          return false;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const forecast = new Date(item.Previsao_Entrega + 'T00:00:00');
+        forecast.setHours(0, 0, 0, 0);
+
+        return today.getTime() >= forecast.getTime();
+      }
+
+      function normalizeData(data) {
+        return {
+          geral: Array.isArray(data && data.geral) ? data.geral : [],
+          medicamentos: Array.isArray(data && data.medicamentos) ? data.medicamentos : [],
+        };
+      }
+
+      function parseInitialDataB64(encoded) {
+        if (!encoded) {
+          return normalizeData({});
+        }
+
+        try {
+          const normalized = String(encoded).replace(/-/g, '+').replace(/_/g, '/');
+          const paddingLength = (4 - (normalized.length % 4)) % 4;
+          const padded = normalized + '='.repeat(paddingLength);
+          const binary = atob(padded);
+          let jsonText = '';
+
+          if (typeof TextDecoder !== 'undefined') {
+            const bytes = Uint8Array.from(binary, function (char) {
+              return char.charCodeAt(0);
+            });
+            jsonText = new TextDecoder('utf-8').decode(bytes);
+          } else {
+            jsonText = decodeURIComponent(
+              Array.prototype.map
+                .call(binary, function (char) {
+                  return '%' + ('00' + char.charCodeAt(0).toString(16)).slice(-2);
+                })
+                .join('')
+            );
+          }
+
+          return normalizeData(JSON.parse(jsonText));
+        } catch (error) {
+          console.error('Falha ao carregar dados iniciais do template.', error);
+          return normalizeData({});
+        }
+      }
+
+      function setLoading(isLoading) {
+        saveButton.disabled = isLoading;
+      }
+
+      function setDashboardButtonsDisabled(disabled) {
+        dashboardBody.querySelectorAll('button').forEach(function (button) {
+          button.disabled = disabled;
+        });
+      }
+
+      function setStatus(element, message, isError) {
+        element.textContent = message || '';
+        element.classList.toggle('error', Boolean(isError));
+      }
+
+      function clearStatus(element) {
+        setStatus(element, '', false);
+      }
+
+      function getErrorMessage(error) {
+        return error && error.message ? error.message : 'Ocorreu um erro inesperado.';
+      }
+
+      function formatDateTime(value) {
+        if (!value) return '-';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString('pt-BR');
+      }
+
+      function formatDate(value) {
+        if (!value) return '';
+        const date = new Date(value + 'T00:00:00');
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleDateString('pt-BR');
+      }
+
+      function escapeHtml(value) {
+        return String(value == null ? '' : value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function escapeAttribute(value) {
+        return escapeHtml(value).replace(/\\/g, '\\\\');
+      }
+    </script>
+  </body>
+</html>
