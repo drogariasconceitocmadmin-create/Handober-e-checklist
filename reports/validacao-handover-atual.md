@@ -1,4 +1,4 @@
-# Validacao Handover - commit 9541ea6
+# Validacao Handover - commit fee9b80
 
 Projeto: Handover - Drogarias Conceito
 
@@ -6,7 +6,7 @@ Pasta: `C:\Users\Marco\Desktop\Sis Drogaria\Handover`
 
 Branch: `master`
 
-Commit validado: `9541ea6 - Handover: rascunho checklist preservado, modal novo registro, Geral titulo/urgencia, atalhos data, comprado otimista`
+Commit validado: `fee9b80 - fix(handover): tolerate legacy Geral/Arquivo headers without blocking Web App`
 
 ScriptId: `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
 
@@ -18,15 +18,11 @@ URL oficial: `https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklp
 
 ## Resultado
 
-Status geral: FALHA
+Status geral: PARCIAL
 
-Pre-deploy: OK.
+Versao publicada: 21.
 
-Publicacao: versao 20 criada e aplicada ao deployment oficial.
-
-Smoke desktop real: FALHA na abertura.
-
-Rollback operacional: deployment oficial revertido para versao 19.
+Rollback feito: NAO.
 
 POP tocado: NAO.
 
@@ -35,54 +31,55 @@ POP tocado: NAO.
 - Pasta Handover confirmada.
 - Branch `master` confirmada.
 - `.clasp.json` confirmado com scriptId do Handover.
-- Commit `9541ea6` presente no HEAD.
-- Diff do commit alterou apenas `Code.gs` e `Index.html`.
-- `Code.gs` preserva `doGet()` com `addMetaTag('viewport', 'width=device-width, initial-scale=1')`.
-- `Code.gs` nao contem `sheet.clear()`.
-- `Code.gs` preserva `ensureHeaders_`, `saveData`, `markAsPurchased`, `registerWhatsAppAttempt` e `updateChecklistItemStatus`.
-- `Index.html` contem modal de novo registro, Titulo/Urgencia para Geral, atalhos de data, rascunho de observacao do checklist e feedback otimista.
+- Commit `fee9b80` presente no HEAD.
+- Diff do commit alterou `Code.gs` e `Index.html`.
+- Nao ha `sheet.clear()`.
+- `ensureHeadersLegacyAdditive_` nao reordena colunas existentes.
+- `ensureHeadersLegacyAdditive_` nao sobrescreve cabecalhos existentes.
+- Cabecalhos faltantes sao adicionados no final.
+- Aliases com/sem acento sao tratados por chave canonica.
+- Geral/Arquivo usam leitura/escrita por mapa de cabecalho real.
+- Fallbacks de Geral confirmados no codigo: `Titulo || Assunto || Descricao resumida || Solicitação geral`; urgencia vazia vira `Normal`.
+- Mantidos: modal, Geral com titulo/urgencia, operador atual, atalhos de data, rascunho checklist, comprado otimista, Falta sem preco, Encomenda com preco e `doGet` com viewport.
 
 ## Publicacao
 
 - `clasp status`: OK.
 - `clasp push`: OK, 3 arquivos enviados.
-- `clasp version`: criada versao 20.
-- `clasp deploy`: deployment oficial atualizado para versao 20.
-- Apos falha critica no smoke, o deployment oficial foi revertido para versao 19.
+- `clasp version`: criada versao 21.
+- `clasp deploy`: deployment oficial atualizado para versao 21.
 
-## Falha critica
+## Smoke desktop real
 
-Ao abrir a URL oficial publicada em `@20`, o Web App nao carregou a interface. A pagina retornou:
-
-```text
-Error: Estrutura de cabecalho incompativel na aba "Geral". Ajuste manualmente os cabecalhos para: ID, Timestamp, Autor, Titulo, Urgencia, Descricao, Resolvido, Ultima_Acao_Por, Ultima_Acao_Em, Resolvido_Por, Data_Resolucao. (linha 874, arquivo "Code")
-```
-
-Impacto: o Handover fica indisponivel para usuario final se o deployment permanecer em `@20`.
-
-Causa provavel: o commit adiciona colunas `Titulo` e `Urgencia` na aba `Geral`, mas a migracao defensiva atual nao consegue inserir essas colunas no meio do cabecalho existente sem considerar a estrutura atual compativel. O validador de cabecalho bloqueia antes do app abrir.
-
-## Smoke desktop
-
-- Abertura: FALHA em `@20`.
-- Dashboard: NAO VALIDADO por falha na abertura.
-- Modal: NAO VALIDADO por falha na abertura.
-- Geral: NAO VALIDADO por falha na abertura.
-- Medicamento Falta: NAO VALIDADO por falha na abertura.
-- Medicamento Encomenda: NAO VALIDADO por falha na abertura.
-- Comprado otimista: NAO VALIDADO por falha na abertura.
-- WhatsApp: NAO VALIDADO por falha na abertura.
-- Checklist rascunho observacao: NAO VALIDADO por falha na abertura.
-- Historico: NAO VALIDADO por falha na abertura.
+- Abertura: OK. Web App abriu sem erro de cabecalho.
+- Dashboard: OK. Cards carregaram.
+- Checklist inicial: OK. Iniciou recolhido.
+- Console: OK. Sem erro critico observado.
+- Schema Geral: OK. Aba Geral nao bloqueou abertura; registros antigos continuaram visiveis; novo Geral salvou com titulo/urgencia.
+- Geral: OK. Criado `CODEX_V21 Geral - schema`; card apareceu rapido e exibiu operador/urgencia.
+- Medicamento Falta: OK parcial visual. Campo Preco de venda ficou oculto; nao foi salvo novo registro de Falta nesta rodada.
+- Medicamento Encomenda: OK parcial visual. Campo Preco apareceu e atalhos de data preencheram o campo; nao foi salvo novo registro de Encomenda nesta rodada.
+- Checklist observacao: FALHA. Texto digitado em observacao do item A sumiu ao marcar item B como Feito.
+- Historico/Resolvidos: OK. Carregou sob demanda sem erro de cabecalho.
 
 ## Registros criados
 
-Nenhum.
+- `CODEX_V21 Geral - schema`
 
-## Estado final
+## Falhas
 
-O deployment oficial foi revertido para a versao 19 para preservar o uso operacional.
+### Criticas
+
+- Nenhuma.
+
+### Medias
+
+- Checklist observacao: rascunho digitado em um item nao foi preservado apos atualizar outro item do checklist.
+
+### Leves
+
+- Medicamento Falta e Encomenda foram validados visualmente, mas nao foram salvos nesta rodada para evitar registros extras apos identificar a falha media do checklist.
 
 ## Veredito
 
-Publicacao bloqueada. Motivo: falha critica de schema/cabecalho na aba `Geral` ao abrir o Web App na versao 20.
+Publicado com ressalvas. Proxima correcao: preservar rascunho de observacao do checklist durante re-render/atualizacao otimista de outro item.

@@ -1,13 +1,15 @@
 {
   "projeto": "Handover - Drogarias Conceito",
-  "status_geral": "FALHA",
+  "status_geral": "PARCIAL",
   "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
   "branch": "master",
-  "commit_validado": "9541ea6",
+  "commit_validado": "fee9b80",
   "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
   "spreadsheetId_informado": "1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8",
   "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
   "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
+  "versao_publicada": 21,
+  "rollback_feito": false,
   "pre_deploy": {
     "resultado": "OK",
     "arquivos_alterados": [
@@ -15,41 +17,38 @@
       "Index.html"
     ],
     "sheet_clear": false,
+    "schema_legacy_additive": true,
     "pop_referenciado": false
   },
-  "publicacao": {
-    "clasp_push": true,
-    "versao_criada": 20,
-    "deploy_v20_realizado": true,
-    "rollback_realizado": true,
-    "versao_final_deployment": 19
-  },
   "smoke_desktop": {
-    "resultado": "FALHA",
-    "abertura": "FALHA",
-    "dashboard": "NAO_VALIDADO",
-    "modal": "NAO_VALIDADO",
-    "geral": "NAO_VALIDADO",
-    "medicamento_falta": "NAO_VALIDADO",
-    "medicamento_encomenda": "NAO_VALIDADO",
-    "comprado_otimista": "NAO_VALIDADO",
-    "whatsapp": "NAO_VALIDADO",
-    "checklist_rascunho_observacao": "NAO_VALIDADO",
-    "historico": "NAO_VALIDADO"
+    "abertura": "OK",
+    "schema_geral": "OK",
+    "geral": "OK",
+    "medicamento_falta": "OK_PARCIAL_VISUAL",
+    "medicamento_encomenda": "OK_PARCIAL_VISUAL",
+    "checklist_observacao": "FALHA",
+    "historico": "OK"
   },
-  "registros_criados": [],
+  "registros_criados": [
+    "CODEX_V21 Geral - schema"
+  ],
   "falhas": {
-    "criticas": [
+    "criticas": [],
+    "medias": [
       {
-        "area": "schema",
-        "mensagem": "Estrutura de cabecalho incompativel na aba Geral. Ajuste manualmente os cabecalhos para incluir Titulo e Urgencia.",
-        "impacto": "Web App nao abre na versao 20.",
-        "arquivo_funcao_provavel": "Code.gs / ensureHeaders_"
+        "area": "checklist",
+        "mensagem": "Rascunho digitado na observacao do item A sumiu ao marcar item B como Feito.",
+        "impacto": "Usuario pode perder texto nao salvo durante atualizacao do checklist.",
+        "arquivo_funcao_provavel": "Index.html / captureObservationDraftsFromDom_ / renderChecklistSection"
       }
     ],
-    "medias": [],
-    "leves": []
+    "leves": [
+      {
+        "area": "smoke",
+        "mensagem": "Falta e Encomenda validadas visualmente sem salvar registros novos."
+      }
+    ]
   },
   "pop_tocado": false,
-  "veredito": "Publicacao bloqueada. Motivo: falha critica de schema/cabecalho na aba Geral ao abrir o Web App na versao 20."
+  "veredito": "Publicado com ressalvas. Proxima correcao: preservar rascunho de observacao do checklist durante re-render/atualizacao otimista de outro item."
 }
