@@ -1001,6 +1001,8 @@
       const checklistGenerateBtn = document.getElementById('checklist-generate-btn');
       const operadorAtualInput = document.getElementById('operador-atual');
 
+      ensureChecklistObservationDelegation_();
+
       categorySelect.addEventListener('change', updateVisibleFields);
       if (tipoSelect) {
         tipoSelect.addEventListener('change', updateMedicinePriceVisibility_);
@@ -1187,7 +1189,7 @@
         }
         var items = dashboardData.checklistTurno.items || [];
         var idx = items.findIndex(function (i) {
-          return i.ID === patch.checklistItem.ID;
+          return checklistDraftKey_(i.ID) === checklistDraftKey_(patch.checklistItem.ID);
         });
         if (idx >= 0) {
           items[idx] = patch.checklistItem;
@@ -1754,8 +1756,75 @@
           .toLowerCase();
       }
 
-      function renderChecklistSection() {
-        captureObservationDraftsFromDom_();
+      function checklistDraftKey_(id) {
+        return String(id == null ? '' : id).trim();
+      }
+
+      function flushActiveObservationDraftToStore_() {
+        var ae = document.activeElement;
+        if (!ae || !ae.getAttribute) {
+          return;
+        }
+        if (ae.getAttribute('data-check-obs-input') !== '1') {
+          return;
+        }
+        var cid = ae.getAttribute('data-check-item-id');
+        if (!cid) {
+          return;
+        }
+        checklistObservationDrafts[checklistDraftKey_(cid)] = ae.value;
+      }
+
+      function syncObservationDraftFromEventTarget_(target) {
+        if (!target || !target.getAttribute) {
+          return;
+        }
+        if (target.getAttribute('data-check-obs-input') !== '1') {
+          return;
+        }
+        var cid = target.getAttribute('data-check-item-id');
+        if (!cid) {
+          return;
+        }
+        checklistObservationDrafts[checklistDraftKey_(cid)] = target.value;
+      }
+
+      function ensureChecklistObservationDelegation_() {
+        if (!checklistCategories || checklistCategories.dataset.handoverObsDeleg === '1') {
+          return;
+        }
+        checklistCategories.dataset.handoverObsDeleg = '1';
+        checklistCategories.addEventListener(
+          'input',
+          function (ev) {
+            syncObservationDraftFromEventTarget_(ev.target);
+          },
+          false
+        );
+        checklistCategories.addEventListener(
+          'change',
+          function (ev) {
+            syncObservationDraftFromEventTarget_(ev.target);
+          },
+          false
+        );
+        checklistCategories.addEventListener(
+          'compositionend',
+          function (ev) {
+            syncObservationDraftFromEventTarget_(ev.target);
+          },
+          false
+        );
+        checklistCategories.addEventListener(
+          'blur',
+          function (ev) {
+            syncObservationDraftFromEventTarget_(ev.target);
+          },
+          true
+        );
+      }
+
+      function renderChecklistSummaryBarAndHints_() {
         const checklist = dashboardData.checklistTurno;
         const items = checklist.items || [];
         const summary = checklist.summary || buildChecklistSummary_(items);
@@ -1783,6 +1852,14 @@
 
         checklistContent.classList.toggle('hidden', !isChecklistExpanded);
         checklistToggleBtn.textContent = isChecklistExpanded ? 'Fechar checklist' : 'Abrir checklist';
+      }
+
+      function renderChecklistSection() {
+        captureObservationDraftsFromDom_();
+        renderChecklistSummaryBarAndHints_();
+
+        const checklist = dashboardData.checklistTurno;
+        const items = checklist.items || [];
 
         if (!isChecklistExpanded) {
           checklistCategories.innerHTML = '';
@@ -1836,32 +1913,19 @@
             );
           })
           .join('');
-        bindChecklistObservationDraftListeners_();
+        ensureChecklistObservationDelegation_();
       }
 
       function captureObservationDraftsFromDom_() {
+        flushActiveObservationDraftToStore_();
         if (!checklistCategories) {
           return;
         }
         checklistCategories.querySelectorAll('[data-check-obs-input]').forEach(function (el) {
           var id = el.getAttribute('data-check-item-id');
           if (id) {
-            checklistObservationDrafts[id] = el.value;
+            checklistObservationDrafts[checklistDraftKey_(id)] = el.value;
           }
-        });
-      }
-
-      function bindChecklistObservationDraftListeners_() {
-        if (!checklistCategories) {
-          return;
-        }
-        checklistCategories.querySelectorAll('[data-check-obs-input]').forEach(function (input) {
-          input.addEventListener('input', function () {
-            var id = input.getAttribute('data-check-item-id');
-            if (id) {
-              checklistObservationDrafts[id] = input.value;
-            }
-          });
         });
       }
 
@@ -1869,10 +1933,96 @@
         if (!item || !item.ID) {
           return '';
         }
-        if (Object.prototype.hasOwnProperty.call(checklistObservationDrafts, item.ID)) {
-          return checklistObservationDrafts[item.ID];
+        var key = checklistDraftKey_(item.ID);
+        if (Object.prototype.hasOwnProperty.call(checklistObservationDrafts, key)) {
+          return checklistObservationDrafts[key];
         }
         return item.Observacao || '';
+      }
+
+      function findChecklistItemModel_(itemId) {
+        var key = checklistDraftKey_(itemId);
+        var items = dashboardData.checklistTurno.items || [];
+        for (var i = 0; i < items.length; i++) {
+          if (checklistDraftKey_(items[i].ID) === key) {
+            return items[i];
+          }
+        }
+        return null;
+      }
+
+      function refreshChecklistCategoryHeadMeta_() {
+        if (!checklistCategories) {
+          return;
+        }
+        var checklist = dashboardData.checklistTurno;
+        var items = checklist.items || [];
+        var grouped = groupChecklistByCategory_(items);
+        checklistCategories.querySelectorAll('.checklist-category').forEach(function (sec) {
+          var headBtn = sec.querySelector('.checklist-category-head');
+          if (!headBtn) {
+            return;
+          }
+          var spans = headBtn.querySelectorAll('span');
+          if (spans.length < 2) {
+            return;
+          }
+          var catName = spans[0].textContent || '';
+          var meta = spans[1];
+          var bucket = grouped[catName];
+          if (!bucket) {
+            return;
+          }
+          var summaryByCategory = buildChecklistSummary_(bucket);
+          meta.textContent =
+            summaryByCategory.itensFeitos +
+            '/' +
+            summaryByCategory.totalItens +
+            ' feitos • ' +
+            summaryByCategory.itensPendentes +
+            ' pend. • ' +
+            summaryByCategory.itensNaoAplicaveis +
+            ' N/A';
+        });
+      }
+
+      function patchChecklistItemArticle_(itemId) {
+        if (!checklistCategories || !isChecklistExpanded) {
+          return false;
+        }
+        var item = findChecklistItemModel_(itemId);
+        if (!item) {
+          return false;
+        }
+        var sid = checklistDraftKey_(itemId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        var host = checklistCategories.querySelector('[data-check-item-id="' + sid + '"]');
+        if (!host) {
+          return false;
+        }
+        var visible = filterChecklistItemsForView_([item]).length > 0;
+        if (!visible) {
+          var parentItems = host.closest('.checklist-items');
+          host.remove();
+          if (parentItems && !parentItems.querySelector('[data-check-item-id]')) {
+            parentItems.innerHTML =
+              '<div class="empty-box">Nenhum item neste filtro nesta categoria.</div>';
+          }
+          renderChecklistSummaryBarAndHints_();
+          refreshChecklistCategoryHeadMeta_();
+          return true;
+        }
+
+        var html = buildChecklistItemHtml_(item, dashboardData.checklistTurno.isAfterDeadline);
+        var tpl = document.createElement('template');
+        tpl.innerHTML = html.trim();
+        var fresh = tpl.content.firstElementChild;
+        if (!fresh) {
+          return false;
+        }
+        host.replaceWith(fresh);
+        renderChecklistSummaryBarAndHints_();
+        refreshChecklistCategoryHeadMeta_();
+        return true;
       }
 
       function groupChecklistByCategory_(items) {
@@ -1919,7 +2069,7 @@
       function optimisticChecklistPatch_(id, uiStatusLabel) {
         var items = dashboardData.checklistTurno.items || [];
         var idx = items.findIndex(function (i) {
-          return i.ID === id;
+          return checklistDraftKey_(i.ID) === checklistDraftKey_(id);
         });
         if (idx < 0) {
           return;
@@ -1961,10 +2111,11 @@
         const status = formatChecklistStatus_(item.Status);
         const statusClass = statusToClass_(status);
         const isLate = isAfterDeadline && status === 'Pendente';
-        const isSaving = checklistPendingItemId === item.ID;
+        const isSaving =
+          checklistDraftKey_(checklistPendingItemId) === checklistDraftKey_(item.ID);
         const itemClass = 'check-item' + (isLate ? ' late' : '') + (isSaving ? ' syncing' : '');
         const observationInputId = buildChecklistObservationInputId_(item.ID);
-        const showObservation = openChecklistObservations.has(item.ID);
+        const showObservation = openChecklistObservations.has(checklistDraftKey_(item.ID));
         var obsDraftVal = getObservationValueForItem_(item);
         const hasObservation = Boolean((obsDraftVal || '').trim());
         const checkInfo = item.Data_Hora_Check
@@ -1975,6 +2126,8 @@
         return (
           '<article class="' +
           itemClass +
+          '" data-check-item-id="' +
+          escapeAttribute(item.ID) +
           '">' +
           '<div class="check-item-title">' +
           escapeHtml(item.Item) +
@@ -2036,7 +2189,8 @@
           label = 'N/A ✓';
         }
         var shortLabel = statusLabel === 'Não aplicável' && !isActive ? 'N/A' : label;
-        var savingAttr = checklistPendingItemId === itemId ? ' disabled' : '';
+        var savingAttr =
+          checklistDraftKey_(checklistPendingItemId) === checklistDraftKey_(itemId) ? ' disabled' : '';
         return (
           '<button ' +
           'type="button" ' +
@@ -2072,10 +2226,11 @@
       }
 
       function toggleChecklistObservation(itemId) {
-        if (openChecklistObservations.has(itemId)) {
-          openChecklistObservations.delete(itemId);
+        var key = checklistDraftKey_(itemId);
+        if (openChecklistObservations.has(key)) {
+          openChecklistObservations.delete(key);
         } else {
-          openChecklistObservations.add(itemId);
+          openChecklistObservations.add(key);
         }
         renderChecklistSection();
       }
@@ -2089,7 +2244,9 @@
 
         checklistPendingItemId = id;
         optimisticChecklistPatch_(id, status);
-        renderChecklistSection();
+        if (!patchChecklistItemArticle_(id)) {
+          renderChecklistSection();
+        }
 
         var started = Date.now();
         clearStatus(checklistStatus);
@@ -2100,7 +2257,9 @@
               checklistPendingItemId = null;
               applyChecklistPatch_(response);
               perfLog_('updateChecklistItemStatus', started);
-              renderChecklistSection();
+              if (!patchChecklistItemArticle_(id)) {
+                renderChecklistSection();
+              }
               renderSummary();
               showToast_('Checklist atualizado');
             })
@@ -2123,6 +2282,7 @@
       function saveChecklistObservation(id, inputId) {
         const input = document.getElementById(inputId);
         const observacao = input ? input.value : '';
+        checklistObservationDrafts[checklistDraftKey_(id)] = observacao;
         var operador = ensureOperadorForCriticalAction_();
         if (!operador) {
           showToast_('Informe o operador atual antes de salvar observação.', true);
@@ -2130,7 +2290,9 @@
         }
 
         checklistPendingItemId = id;
-        renderChecklistSection();
+        if (!patchChecklistItemArticle_(id)) {
+          renderChecklistSection();
+        }
         setStatus(checklistStatus, 'Salvando observação...');
 
         var started = Date.now();
@@ -2140,8 +2302,10 @@
               checklistPendingItemId = null;
               applyChecklistPatch_(response);
               perfLog_('updateChecklistItemObservation', started);
-              delete checklistObservationDrafts[id];
-              renderChecklistSection();
+              delete checklistObservationDrafts[checklistDraftKey_(id)];
+              if (!patchChecklistItemArticle_(id)) {
+                renderChecklistSection();
+              }
               renderSummary();
               setStatus(checklistStatus, 'Observação salva.');
               showToast_('Observação salva');
