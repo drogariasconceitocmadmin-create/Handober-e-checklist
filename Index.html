@@ -522,6 +522,92 @@
         display: none !important;
       }
 
+      #toast-root {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: min(360px, calc(100vw - 32px));
+        pointer-events: none;
+      }
+
+      .toast-msg {
+        pointer-events: none;
+        background: #1f2937;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.18);
+        animation: toast-in 0.2s ease-out;
+      }
+
+      .toast-msg.error {
+        background: var(--danger);
+      }
+
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .queue-card.syncing {
+        outline: 2px dashed #93c5fd;
+      }
+
+      .queue-card.sync-error {
+        outline: 2px solid var(--danger);
+      }
+
+      .check-item.syncing {
+        opacity: 0.85;
+      }
+
+      .check-actions button.correction {
+        font-size: 11px;
+        padding: 5px 8px;
+        font-weight: 600;
+      }
+
+      .operador-bar .field {
+        margin: 0;
+      }
+
+      .operador-bar label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .operador-bar input {
+        width: 100%;
+        max-width: 420px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font: inherit;
+        padding: 8px;
+      }
+
+      .checklist-filters .filter-button {
+        font-size: 11px;
+        padding: 6px 10px;
+      }
+
+      .filter-button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+      }
+
       .empty-box {
         color: var(--muted);
         border: 1px dashed var(--border);
@@ -580,12 +666,25 @@
 
       <section id="operation-summary" class="summary-grid"></section>
 
+      <section class="card operador-bar" style="margin-top: 10px;">
+        <div class="field">
+          <label for="operador-atual">Operador atual</label>
+          <input
+            id="operador-atual"
+            type="text"
+            name="operador-atual"
+            autocomplete="name"
+            placeholder="Nome usado em checklist e ações (salvo neste aparelho)"
+          >
+        </div>
+      </section>
+
       <section class="toolbar card">
         <div class="filter-group" id="queue-filters">
-          <button type="button" class="filter-button active" data-filter="todos" onclick="setQueueFilter('todos')">
+          <button type="button" class="filter-button" data-filter="todos" onclick="setQueueFilter('todos')">
             Todos
           </button>
-          <button type="button" class="filter-button" data-filter="pendentes" onclick="setQueueFilter('pendentes')">
+          <button type="button" class="filter-button active" data-filter="pendentes" onclick="setQueueFilter('pendentes')">
             Pendentes
           </button>
           <button type="button" class="filter-button" data-filter="comprados" onclick="setQueueFilter('comprados')">
@@ -593,6 +692,14 @@
           </button>
           <button type="button" class="filter-button" data-filter="entregues" onclick="setQueueFilter('entregues')">
             Entregues
+          </button>
+          <button
+            type="button"
+            class="filter-button"
+            data-filter="resolvidos"
+            onclick="setQueueFilter('resolvidos')"
+          >
+            Histórico / Resolvidos
           </button>
           <button
             type="button"
@@ -643,13 +750,35 @@
         <div id="checklist-summary" class="checklist-summary"></div>
         <p id="checklist-generate-hint" class="checklist-hint"></p>
 
-        <div class="toolbar-actions" style="margin-bottom: 8px;">
-          <input
-            id="checklist-responsavel"
-            type="text"
-            placeholder="Responsável (opcional)"
-            style="border:1px solid var(--border); border-radius:8px; font:inherit; padding:8px; flex:1 1 220px;"
+        <div class="filter-group checklist-filters" style="margin-bottom: 8px; flex-wrap: wrap;">
+          <button
+            type="button"
+            class="filter-button active"
+            data-check-filter="todos"
+            onclick="setChecklistFilter('todos')"
           >
+            Todos
+          </button>
+          <button type="button" class="filter-button" data-check-filter="pendentes" onclick="setChecklistFilter('pendentes')">
+            Pendentes
+          </button>
+          <button type="button" class="filter-button" data-check-filter="feitos" onclick="setChecklistFilter('feitos')">
+            Feitos
+          </button>
+          <button type="button" class="filter-button" data-check-filter="na" onclick="setChecklistFilter('na')">
+            Não aplicáveis
+          </button>
+          <button
+            type="button"
+            class="filter-button"
+            data-check-filter="feitos_hoje"
+            onclick="setChecklistFilter('feitos_hoje')"
+          >
+            Feitos hoje
+          </button>
+        </div>
+
+        <div class="toolbar-actions" style="margin-bottom: 8px;">
           <button id="checklist-generate-btn" type="button" class="light" onclick="refreshChecklistToday()">
             Atualizar visualização
           </button>
@@ -697,7 +826,7 @@
               <input id="medicamento" name="medicamento">
             </div>
 
-            <div class="field">
+            <div class="field" id="preco-venda-field">
               <label for="precoVenda">Preço de venda</label>
               <input id="precoVenda" name="precoVenda" type="text" inputmode="decimal" placeholder="R$ 0,00">
             </div>
@@ -737,19 +866,29 @@
       </section>
     </main>
 
+    <div id="toast-root" aria-live="polite"></div>
+
     <script>
+      const OPERADOR_STORAGE_KEY = 'handover_operador_atual_v14';
       const QUEUE_FILTERS = [
         'todos',
         'pendentes',
         'comprados',
         'entregues',
+        'resolvidos',
         'resolvidos_parcialmente',
         'comprados_sem_aviso',
         'vencidos_hoje',
       ];
 
+      const CHECKLIST_VIEW_FILTERS = ['todos', 'pendentes', 'feitos', 'na', 'feitos_hoje'];
+
       let dashboardData = parseInitialDataB64('<?= initialDataB64 ?>');
-      let activeQueueFilter = 'todos';
+      let activeQueueFilter = 'pendentes';
+      let activeChecklistFilter = 'todos';
+      let historicoResolvidos = [];
+      let historicoLoadState = 'idle';
+      let checklistPendingItemId = null;
       let isChecklistExpanded = false;
       const openChecklistCategories = new Set();
       const openChecklistObservations = new Set();
@@ -758,8 +897,10 @@
       const toggleFormBtn = document.getElementById('toggle-form-btn');
       const requestForm = document.getElementById('request-form');
       const categorySelect = document.getElementById('category');
+      const tipoSelect = document.getElementById('tipo');
       const generalFields = document.getElementById('general-fields');
       const medicineFields = document.getElementById('medicine-fields');
+      const precoVendaField = document.getElementById('preco-venda-field');
       const formStatus = document.getElementById('form-status');
       const saveButton = document.getElementById('save-button');
 
@@ -776,13 +917,277 @@
       const checklistCategories = document.getElementById('checklist-categories');
       const checklistStatus = document.getElementById('checklist-status');
       const checklistGenerateBtn = document.getElementById('checklist-generate-btn');
-      const checklistResponsavel = document.getElementById('checklist-responsavel');
+      const operadorAtualInput = document.getElementById('operador-atual');
 
       categorySelect.addEventListener('change', updateVisibleFields);
+      if (tipoSelect) {
+        tipoSelect.addEventListener('change', updateMedicinePriceVisibility_);
+      }
       requestForm.addEventListener('submit', handleSubmit);
       requestForm.addEventListener('reset', function () {
-        setTimeout(updateVisibleFields, 0);
+        setTimeout(function () {
+          updateVisibleFields();
+          updateMedicinePriceVisibility_();
+        }, 0);
       });
+
+      initOperadorBar_();
+      updateMedicinePriceVisibility_();
+
+      function initOperadorBar_() {
+        if (!operadorAtualInput) {
+          return;
+        }
+        try {
+          operadorAtualInput.value = localStorage.getItem(OPERADOR_STORAGE_KEY) || '';
+        } catch (e) {
+          operadorAtualInput.value = '';
+        }
+        operadorAtualInput.addEventListener('change', function () {
+          try {
+            localStorage.setItem(OPERADOR_STORAGE_KEY, operadorAtualInput.value.trim());
+          } catch (err) {
+            console.warn('Handover: localStorage indisponível.', err);
+          }
+        });
+      }
+
+      function getOperadorAtual_() {
+        return operadorAtualInput ? operadorAtualInput.value.trim() : '';
+      }
+
+      function ensureOperadorForCriticalAction_() {
+        var op = getOperadorAtual_();
+        if (op) {
+          return op;
+        }
+        var prompted = window.prompt('Informe o operador atual (nome):', '');
+        prompted = String(prompted || '').trim();
+        if (!prompted) {
+          return '';
+        }
+        if (operadorAtualInput) {
+          operadorAtualInput.value = prompted;
+        }
+        try {
+          localStorage.setItem(OPERADOR_STORAGE_KEY, prompted);
+        } catch (err) {
+          console.warn('Handover: localStorage indisponível.', err);
+        }
+        return prompted;
+      }
+
+      function showToast_(message, isError) {
+        var root = document.getElementById('toast-root');
+        if (!root || !message) {
+          return;
+        }
+        var node = document.createElement('div');
+        node.className = 'toast-msg' + (isError ? ' error' : '');
+        node.textContent = message;
+        root.appendChild(node);
+        window.setTimeout(function () {
+          if (node.parentNode) {
+            node.parentNode.removeChild(node);
+          }
+        }, 2400);
+      }
+
+      function perfLog_(label, startedAt) {
+        try {
+          console.debug('[Handover] ' + label + ' ms=', Date.now() - startedAt);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      function normalizeBrazilPhoneClient_(phoneValue) {
+        var digits = String(phoneValue || '')
+          .replace(/\D/g, '')
+          .replace(/^0+/, '');
+        if (!digits) {
+          return '';
+        }
+        if (digits.indexOf('55') === 0) {
+          return digits.length === 12 || digits.length === 13 ? digits : '';
+        }
+        return digits.length === 10 || digits.length === 11 ? '55' + digits : '';
+      }
+
+      function buildWhatsAppMessageClient_(clientName, medicineName) {
+        var name = String(clientName || '').trim() || 'cliente';
+        var medicine = String(medicineName || '').trim() || 'informado';
+        return [
+          'Olá, ' + name + '. Seu medicamento ' + medicine + ' chegou na Drogarias Conceito.',
+          '',
+          'Pode retirar na loja hoje.',
+          '',
+          'Se preferir, responda esta mensagem que verificamos a melhor forma de entrega.',
+        ].join('\n');
+      }
+
+      function updateMedicinePriceVisibility_() {
+        if (!precoVendaField || !tipoSelect) {
+          return;
+        }
+        var isFalta = String(tipoSelect.value || '').toLowerCase() === 'falta';
+        precoVendaField.classList.toggle('hidden', isFalta);
+        if (isFalta) {
+          var pv = document.getElementById('precoVenda');
+          if (pv) {
+            pv.value = '';
+          }
+        }
+      }
+
+      function medicationTipoFromRecord_(item) {
+        return String((item && item.Tipo) || '')
+          .trim()
+          .toLowerCase();
+      }
+
+      function upsertMedicamento_(record) {
+        if (!record || !record.ID) {
+          return;
+        }
+        var list = dashboardData.medicamentos || [];
+        var idx = list.findIndex(function (m) {
+          return m.ID === record.ID;
+        });
+        if (idx >= 0) {
+          list[idx] = record;
+        } else {
+          list.unshift(record);
+        }
+        dashboardData.medicamentos = list;
+      }
+
+      function removeMedicamentoById_(id) {
+        dashboardData.medicamentos = (dashboardData.medicamentos || []).filter(function (m) {
+          return m.ID !== id;
+        });
+      }
+
+      function upsertGeral_(record) {
+        if (!record || !record.ID) {
+          return;
+        }
+        var list = dashboardData.geral || [];
+        list.unshift(record);
+        dashboardData.geral = list;
+      }
+
+      function removeGeralById_(id) {
+        dashboardData.geral = (dashboardData.geral || []).filter(function (g) {
+          return g.ID !== id;
+        });
+      }
+
+      function applyChecklistPatch_(patch) {
+        if (!patch || !patch.checklistItem || !patch.checklistItem.ID) {
+          return;
+        }
+        var items = dashboardData.checklistTurno.items || [];
+        var idx = items.findIndex(function (i) {
+          return i.ID === patch.checklistItem.ID;
+        });
+        if (idx >= 0) {
+          items[idx] = patch.checklistItem;
+        }
+        if (patch.checklistSummary && typeof patch.checklistSummary === 'object') {
+          dashboardData.checklistTurno.summary = {
+            totalItens: Number(patch.checklistSummary.totalItens || 0),
+            itensFeitos: Number(patch.checklistSummary.itensFeitos || 0),
+            itensNaoAplicaveis: Number(patch.checklistSummary.itensNaoAplicaveis || 0),
+            itensPendentes: Number(patch.checklistSummary.itensPendentes || 0),
+            percentualConcluido: Number(patch.checklistSummary.percentualConcluido || 0),
+          };
+        }
+      }
+
+      function loadHistoricoIfNeeded_(callback) {
+        if (historicoLoadState === 'ready') {
+          callback();
+          return;
+        }
+        if (historicoLoadState === 'loading') {
+          var attempts = 0;
+          var timer = window.setInterval(function () {
+            attempts += 1;
+            if (historicoLoadState === 'ready') {
+              window.clearInterval(timer);
+              callback();
+            } else if (attempts > 600) {
+              window.clearInterval(timer);
+              callback();
+            }
+          }, 100);
+          return;
+        }
+        historicoLoadState = 'loading';
+        var started = Date.now();
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (resp) {
+              historicoResolvidos = resp && resp.historico ? resp.historico : [];
+              historicoLoadState = 'ready';
+              perfLog_('fetchHistoricoResolvidos', started);
+              callback();
+            })
+            .withFailureHandler(function (err) {
+              historicoLoadState = 'idle';
+              perfLog_('fetchHistoricoResolvidos_fail', started);
+              showToast_(getErrorMessage(err), true);
+              callback();
+            })
+            .fetchHistoricoResolvidos(120);
+        } catch (err) {
+          historicoLoadState = 'idle';
+          showToast_(getErrorMessage(err), true);
+          callback();
+        }
+      }
+
+      function filterChecklistItemsForView_(items) {
+        var checklist = dashboardData.checklistTurno || {};
+        var todayKey = checklist.data || '';
+        switch (activeChecklistFilter) {
+          case 'pendentes':
+            return items.filter(function (item) {
+              return formatChecklistStatus_(item.Status) === 'Pendente';
+            });
+          case 'feitos':
+            return items.filter(function (item) {
+              return formatChecklistStatus_(item.Status) === 'Feito';
+            });
+          case 'na':
+            return items.filter(function (item) {
+              return formatChecklistStatus_(item.Status) === 'Não aplicável';
+            });
+          case 'feitos_hoje':
+            return items.filter(function (item) {
+              if (formatChecklistStatus_(item.Status) !== 'Feito') {
+                return false;
+              }
+              var ts = String(item.Data_Hora_Check || '');
+              return todayKey && ts.indexOf(todayKey) === 0;
+            });
+          case 'todos':
+          default:
+            return items.slice();
+        }
+      }
+
+      function setChecklistFilter(filterKey) {
+        if (CHECKLIST_VIEW_FILTERS.indexOf(filterKey) === -1) {
+          return;
+        }
+        activeChecklistFilter = filterKey;
+        document.querySelectorAll('[data-check-filter]').forEach(function (button) {
+          button.classList.toggle('active', button.dataset.checkFilter === filterKey);
+        });
+        renderChecklistSection();
+      }
 
       renderAll();
 
@@ -839,8 +1244,95 @@
         );
       }
 
+      function buildAuditMetaLine_(item) {
+        if (!item) {
+          return '';
+        }
+        var parts = [];
+        if (item.Ultima_Acao_Por) {
+          parts.push(
+            'Última ação: ' +
+              item.Ultima_Acao_Por +
+              (item.Ultima_Acao_Em ? ' às ' + formatDateTime(item.Ultima_Acao_Em) : '')
+          );
+        }
+        if (item.Resolvido_Por) {
+          parts.push(
+            'Resolvido por: ' +
+              item.Resolvido_Por +
+              (item.Data_Resolucao ? ' (' + formatDateTime(item.Data_Resolucao) + ')' : '')
+          );
+        }
+        return parts.join(' | ');
+      }
+
+      function buildHistoricoQueueItems_(rows) {
+        return (rows || []).map(function (item) {
+          var origem = String(item.Origem || '');
+          var audit = buildAuditMetaLine_(item);
+          var base = {
+            id: item.ID,
+            type: 'historico',
+            isOverdue: false,
+            whatsappNotSent: false,
+            actions: [],
+            syncState: '',
+            syncError: '',
+            extraMeta:
+              (audit ? audit + ' | ' : '') +
+              'Arquivado: ' +
+              (item.Arquivado_Em ? formatDateTime(item.Arquivado_Em) : '-'),
+          };
+
+          if (origem === 'Geral') {
+            return Object.assign({}, base, {
+              originLabel: 'Histórico · Geral',
+              statusLabel: 'Resolvido',
+              statusKey: 'historico_resolvido',
+              title: item.Descricao || 'Registro arquivado',
+              description: 'Autor: ' + (item.Autor || '-'),
+              person: item.Autor || '-',
+              forecast: '',
+              price: '',
+              timeLabel: formatDateTime(item.Timestamp),
+              timeSort: parseDateTime_(item.Timestamp),
+            });
+          }
+
+          return Object.assign({}, base, {
+            originLabel: 'Histórico · Medicamentos',
+            statusLabel: String(item.Status || 'Arquivado'),
+            statusKey: 'historico_med',
+            title: item.Medicamento || 'Medicamento',
+            description:
+              'Tipo: ' +
+              (item.Tipo || '-') +
+              ' | Cliente: ' +
+              (item.Cliente || '-') +
+              ' | Atendente: ' +
+              (item.Atendente || '-'),
+            person: item.Cliente ? item.Cliente + ' / ' + (item.Atendente || '-') : item.Atendente || '-',
+            forecast: item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '',
+            price: medicationTipoFromRecord_(item) === 'falta' ? '' : formatCurrencyBr_(item.Preco_Venda),
+            timeLabel: formatDateTime(item.Timestamp),
+            timeSort: parseDateTime_(item.Timestamp),
+          });
+        });
+      }
+
+      function buildQueueItemsForRender_() {
+        if (activeQueueFilter === 'resolvidos') {
+          return buildHistoricoQueueItems_(historicoResolvidos).sort(function (a, b) {
+            var timeA = Number(a.timeSort || 0);
+            var timeB = Number(b.timeSort || 0);
+            return timeB - timeA;
+          });
+        }
+        return filterQueueItems_(buildWorkQueueItems(dashboardData));
+      }
+
       function renderQueue() {
-        const queueItems = filterQueueItems_(buildWorkQueueItems(dashboardData));
+        const queueItems = buildQueueItemsForRender_();
         queueList.innerHTML = '';
         queueEmpty.classList.toggle('hidden', queueItems.length !== 0);
         queueSubtitle.textContent =
@@ -852,7 +1344,14 @@
 
         queueItems.forEach(function (item) {
           const card = document.createElement('article');
-          card.className = 'queue-card' + (item.isOverdue ? ' overdue' : '');
+          var cardClass = 'queue-card' + (item.isOverdue ? ' overdue' : '');
+          if (item.syncState === 'syncing') {
+            cardClass += ' syncing';
+          }
+          if (item.syncState === 'error') {
+            cardClass += ' sync-error';
+          }
+          card.className = cardClass;
           card.innerHTML = buildQueueCardHtml_(item);
           queueList.appendChild(card);
         });
@@ -864,6 +1363,13 @@
           '<span class="badge">' + escapeHtml(item.originLabel) + '</span>',
           '<span class="badge' + statusClass + '">' + escapeHtml(item.statusLabel) + '</span>',
         ];
+
+        if (item.syncState === 'syncing') {
+          badges.unshift('<span class="badge">Sincronizando...</span>');
+        }
+        if (item.syncState === 'error') {
+          badges.unshift('<span class="badge status-pendente">Erro ao salvar</span>');
+        }
 
         if (item.isOverdue) {
           badges.push('<span class="badge status-pendente">Atrasado/Hoje</span>');
@@ -921,6 +1427,7 @@
 
       function buildWorkQueueItems(data) {
         const generalItems = (data.geral || []).map(function (item) {
+          var audit = buildAuditMetaLine_(item);
           return {
             id: item.ID,
             type: 'geral',
@@ -933,16 +1440,21 @@
             forecast: '',
             price: '',
             isOverdue: false,
-            extraMeta: '',
+            extraMeta: audit,
+            syncState: item.__syncState || '',
+            syncError: item.__syncError || '',
             timeLabel: formatDateTime(item.Timestamp),
             timeSort: parseDateTime_(item.Timestamp),
-            actions: [
-              {
-                label: 'Marcar como resolvido',
-                handler: 'markResolved',
-                className: '',
-              },
-            ],
+            actions:
+              item.__syncState === 'syncing'
+                ? []
+                : [
+                    {
+                      label: 'Marcar como resolvido',
+                      handler: 'markResolved',
+                      className: '',
+                    },
+                  ],
           };
         });
 
@@ -952,7 +1464,7 @@
           const whatsappSent = normalizeWhatsappStatus_(item.Status_Aviso_WhatsApp) === 'tentativa registrada';
 
           const actions = [];
-          if (!item.Comprado) {
+          if (!item.Comprado && item.__syncState !== 'syncing') {
             actions.push({
               label: 'Marcar como comprado',
               handler: 'markPurchased',
@@ -960,7 +1472,7 @@
             });
           }
 
-          if (whatsappAvailable) {
+          if (whatsappAvailable && item.__syncState !== 'syncing') {
             actions.push({
               label: whatsappSent ? 'Reabrir WhatsApp' : 'Avisar no WhatsApp',
               handler: 'notifyClientWhatsApp',
@@ -968,13 +1480,15 @@
             });
           }
 
-          if (!item.Entregue) {
+          if (!item.Entregue && item.__syncState !== 'syncing') {
             actions.push({
               label: 'Marcar como entregue',
               handler: 'markDelivered',
               className: '',
             });
           }
+
+          var auditMed = buildAuditMetaLine_(item);
 
           return {
             id: item.ID,
@@ -986,12 +1500,15 @@
             description: 'Tipo: ' + (item.Tipo || '-') + ' | Pré-pago: ' + (item.Pre_Pago ? 'Sim' : 'Não'),
             person: item.Cliente ? item.Cliente + ' / ' + (item.Atendente || '-') : item.Atendente || '-',
             forecast: item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '',
-            price: formatCurrencyBr_(item.Preco_Venda),
+            price: medicationTipoFromRecord_(item) === 'falta' ? '' : formatCurrencyBr_(item.Preco_Venda),
             isOverdue: isOverdue(item),
             extraMeta:
+              (auditMed ? auditMed + ' | ' : '') +
               'Aviso WhatsApp: ' +
               (item.Status_Aviso_WhatsApp || 'Não registrado') +
               (item.Telefone ? ' | Telefone: ' + item.Telefone : ''),
+            syncState: item.__syncState || '',
+            syncError: item.__syncError || '',
             timeLabel: formatDateTime(item.Timestamp),
             timeSort: parseDateTime_(item.Timestamp),
             whatsappNotSent: whatsappAvailable && !whatsappSent,
@@ -1036,6 +1553,8 @@
             return items.filter(function (item) {
               return item.type === 'medicamento' && item.isOverdue;
             });
+          case 'resolvidos':
+            return items;
           case 'todos':
           default:
             return items;
@@ -1047,8 +1566,21 @@
           return;
         }
 
+        if (filterKey === 'resolvidos') {
+          activeQueueFilter = filterKey;
+          document.querySelectorAll('#queue-filters .filter-button').forEach(function (button) {
+            button.classList.toggle('active', button.dataset.filter === filterKey);
+          });
+          queueSubtitle.textContent = 'Carregando histórico...';
+          loadHistoricoIfNeeded_(function () {
+            renderQueue();
+            renderSummary();
+          });
+          return;
+        }
+
         activeQueueFilter = filterKey;
-        document.querySelectorAll('.filter-button').forEach(function (button) {
+        document.querySelectorAll('#queue-filters .filter-button').forEach(function (button) {
           button.classList.toggle('active', button.dataset.filter === filterKey);
         });
         renderQueue();
@@ -1060,6 +1592,7 @@
           pendentes: 'Pendentes',
           comprados: 'Comprados',
           entregues: 'Entregues',
+          resolvidos: 'Histórico / Resolvidos',
           resolvidos_parcialmente: 'Resolvidos parcialmente',
           comprados_sem_aviso: 'Comprados sem aviso',
           vencidos_hoje: 'Vencidos/Hoje',
@@ -1136,12 +1669,15 @@
             const categoryItems = grouped[category];
             const summaryByCategory = buildChecklistSummary_(categoryItems);
             const isOpen = openChecklistCategories.has(category);
+            const visibleItems = filterChecklistItemsForView_(categoryItems);
             const itemsHtml = isOpen
-              ? categoryItems
-                  .map(function (item) {
-                    return buildChecklistItemHtml_(item, checklist.isAfterDeadline);
-                  })
-                  .join('')
+              ? visibleItems.length > 0
+                ? visibleItems
+                    .map(function (item) {
+                      return buildChecklistItemHtml_(item, checklist.isAfterDeadline);
+                    })
+                    .join('')
+                : '<div class="empty-box">Nenhum item neste filtro nesta categoria.</div>'
               : '';
 
             return (
@@ -1156,9 +1692,11 @@
               escapeHtml(summaryByCategory.itensFeitos) +
               '/' +
               escapeHtml(summaryByCategory.totalItens) +
-              ' • ' +
-              escapeHtml(summaryByCategory.percentualConcluido) +
-              '%</span>' +
+              ' feitos • ' +
+              escapeHtml(summaryByCategory.itensPendentes) +
+              ' pend. • ' +
+              escapeHtml(summaryByCategory.itensNaoAplicaveis) +
+              ' N/A</span>' +
               '</button>' +
               (isOpen ? '<div class="checklist-items">' + itemsHtml + '</div>' : '') +
               '</section>'
@@ -1178,17 +1716,90 @@
         }, {});
       }
 
+      function mapUiChecklistStatusToServer_(label) {
+        if (label === 'Feito') {
+          return 'Feito';
+        }
+        if (label === 'Não aplicável') {
+          return 'Não aplicável';
+        }
+        return 'Pendente';
+      }
+
+      function formatNowLocalIso_() {
+        var d = new Date();
+        function pad(n) {
+          return String(n).padStart(2, '0');
+        }
+        return (
+          d.getFullYear() +
+          '-' +
+          pad(d.getMonth() + 1) +
+          '-' +
+          pad(d.getDate()) +
+          'T' +
+          pad(d.getHours()) +
+          ':' +
+          pad(d.getMinutes()) +
+          ':' +
+          pad(d.getSeconds())
+        );
+      }
+
+      function optimisticChecklistPatch_(id, uiStatusLabel) {
+        var items = dashboardData.checklistTurno.items || [];
+        var idx = items.findIndex(function (i) {
+          return i.ID === id;
+        });
+        if (idx < 0) {
+          return;
+        }
+        var serverStatus = mapUiChecklistStatusToServer_(uiStatusLabel);
+        var item = items[idx];
+        var op = getOperadorAtual_();
+        item.Status = serverStatus;
+        if (serverStatus === 'Pendente') {
+          item.Data_Hora_Check = '';
+          item.Responsavel = '';
+        } else {
+          item.Responsavel = op;
+          item.Data_Hora_Check = formatNowLocalIso_();
+        }
+        dashboardData.checklistTurno.summary = buildChecklistSummary_(items);
+      }
+
+      function resyncChecklistFromServer_() {
+        var started = Date.now();
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData.checklistTurno = normalizeChecklistData_(response.checklistTurno);
+              perfLog_('generateTodayMorningChecklist', started);
+              renderChecklistSection();
+              renderSummary();
+            })
+            .withFailureHandler(function (error) {
+              setStatus(checklistStatus, getErrorMessage(error), true);
+            })
+            .generateTodayMorningChecklist();
+        } catch (error) {
+          setStatus(checklistStatus, error.message, true);
+        }
+      }
+
       function buildChecklistItemHtml_(item, isAfterDeadline) {
         const status = formatChecklistStatus_(item.Status);
         const statusClass = statusToClass_(status);
         const isLate = isAfterDeadline && status === 'Pendente';
-        const itemClass = 'check-item' + (isLate ? ' late' : '');
+        const isSaving = checklistPendingItemId === item.ID;
+        const itemClass = 'check-item' + (isLate ? ' late' : '') + (isSaving ? ' syncing' : '');
         const observationInputId = buildChecklistObservationInputId_(item.ID);
         const showObservation = openChecklistObservations.has(item.ID);
         const hasObservation = Boolean((item.Observacao || '').trim());
         const checkInfo = item.Data_Hora_Check
           ? 'Última marcação: ' + formatDateTime(item.Data_Hora_Check)
           : 'Sem marcação';
+        const respLine = item.Responsavel ? 'Responsável: ' + item.Responsavel : '';
 
         return (
           '<article class="' +
@@ -1206,12 +1817,12 @@
           escapeHtml(item.Descricao || '') +
           '</div>' +
           '<div class="check-item-meta">' +
-          escapeHtml(checkInfo) +
+          escapeHtml([checkInfo, respLine].filter(Boolean).join(' · ')) +
           '</div>' +
           '<div class="check-actions">' +
-          buildChecklistActionButton_(item.ID, 'Feito', status === 'Feito') +
-          buildChecklistActionButton_(item.ID, 'Não aplicável', status === 'Não aplicável', 'secondary') +
-          buildChecklistActionButton_(item.ID, 'Pendente', status === 'Pendente', 'light') +
+          buildChecklistActionButton_(item.ID, 'Feito', status === 'Feito', '', status) +
+          buildChecklistActionButton_(item.ID, 'Não aplicável', status === 'Não aplicável', 'secondary', status) +
+          buildChecklistActionButton_(item.ID, 'Pendente', status === 'Pendente', 'light', status) +
           '</div>' +
           '<div class="obs-bar">' +
           '<button type="button" class="light" onclick="toggleChecklistObservation(\'' +
@@ -1239,9 +1850,20 @@
         );
       }
 
-      function buildChecklistActionButton_(itemId, statusLabel, isActive, className) {
-        const statusClass = className ? ' ' + className : '';
-        const activeClass = isActive ? ' active' : '';
+      function buildChecklistActionButton_(itemId, statusLabel, isActive, className, statusNow) {
+        var correction =
+          (statusNow === 'Feito' || statusNow === 'Não aplicável') && !isActive ? ' correction' : '';
+        var statusClass = (className ? ' ' + className : '') + correction;
+        var activeClass = isActive ? ' active' : '';
+        var label = statusLabel;
+        if (statusLabel === 'Feito' && isActive) {
+          label = 'Feito ✓';
+        }
+        if (statusLabel === 'Não aplicável' && isActive) {
+          label = 'N/A ✓';
+        }
+        var shortLabel = statusLabel === 'Não aplicável' && !isActive ? 'N/A' : label;
+        var savingAttr = checklistPendingItemId === itemId ? ' disabled' : '';
         return (
           '<button ' +
           'type="button" ' +
@@ -1250,12 +1872,13 @@
           activeClass +
           '" ' +
           'data-check-action="1" ' +
-          'onclick="updateChecklistStatus(\'' +
+          savingAttr +
+          ' onclick="updateChecklistStatus(\'' +
           escapeAttribute(itemId) +
           "', '" +
           escapeAttribute(statusLabel) +
           "')\">" +
-          escapeHtml(statusLabel === 'Não aplicável' ? 'N/A' : statusLabel) +
+          escapeHtml(shortLabel) +
           '</button>'
         );
       }
@@ -1285,53 +1908,83 @@
       }
 
       function updateChecklistStatus(id, status) {
-        const responsavel = checklistResponsavel ? checklistResponsavel.value : '';
-        setStatus(checklistStatus, 'Atualizando checklist...');
-        setChecklistButtonsDisabled(true);
+        var operador = ensureOperadorForCriticalAction_();
+        if (!operador) {
+          showToast_('Informe o operador atual antes de alterar o checklist.', true);
+          return;
+        }
+
+        checklistPendingItemId = id;
+        optimisticChecklistPatch_(id, status);
+        renderChecklistSection();
+
+        var started = Date.now();
+        clearStatus(checklistStatus);
 
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              dashboardData = normalizeData(response.items);
-              renderAll();
-              setStatus(checklistStatus, 'Checklist atualizado.');
-              setChecklistButtonsDisabled(false);
+              checklistPendingItemId = null;
+              applyChecklistPatch_(response);
+              perfLog_('updateChecklistItemStatus', started);
+              renderChecklistSection();
+              renderSummary();
+              showToast_('Checklist atualizado');
             })
             .withFailureHandler(function (error) {
+              checklistPendingItemId = null;
+              perfLog_('updateChecklistItemStatus_fail', started);
+              resyncChecklistFromServer_();
+              showToast_(getErrorMessage(error), true);
               setStatus(checklistStatus, getErrorMessage(error), true);
-              setChecklistButtonsDisabled(false);
             })
-            .updateChecklistItemStatus(id, status, responsavel);
+            .updateChecklistItemStatus(id, status, operador);
         } catch (error) {
+          checklistPendingItemId = null;
+          resyncChecklistFromServer_();
           setStatus(checklistStatus, error.message, true);
-          setChecklistButtonsDisabled(false);
+          showToast_(error.message, true);
         }
       }
 
       function saveChecklistObservation(id, inputId) {
         const input = document.getElementById(inputId);
         const observacao = input ? input.value : '';
-        const responsavel = checklistResponsavel ? checklistResponsavel.value : '';
+        var operador = ensureOperadorForCriticalAction_();
+        if (!operador) {
+          showToast_('Informe o operador atual antes de salvar observação.', true);
+          return;
+        }
 
+        checklistPendingItemId = id;
+        renderChecklistSection();
         setStatus(checklistStatus, 'Salvando observação...');
-        setChecklistButtonsDisabled(true);
 
+        var started = Date.now();
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              dashboardData = normalizeData(response.items);
-              renderAll();
+              checklistPendingItemId = null;
+              applyChecklistPatch_(response);
+              perfLog_('updateChecklistItemObservation', started);
+              renderChecklistSection();
+              renderSummary();
               setStatus(checklistStatus, 'Observação salva.');
-              setChecklistButtonsDisabled(false);
+              showToast_('Observação salva');
             })
             .withFailureHandler(function (error) {
+              checklistPendingItemId = null;
+              perfLog_('updateChecklistItemObservation_fail', started);
+              resyncChecklistFromServer_();
               setStatus(checklistStatus, getErrorMessage(error), true);
-              setChecklistButtonsDisabled(false);
+              showToast_(getErrorMessage(error), true);
             })
-            .updateChecklistItemObservation(id, observacao, responsavel);
+            .updateChecklistItemObservation(id, observacao, operador);
         } catch (error) {
+          checklistPendingItemId = null;
+          resyncChecklistFromServer_();
           setStatus(checklistStatus, error.message, true);
-          setChecklistButtonsDisabled(false);
+          showToast_(error.message, true);
         }
       }
 
@@ -1339,22 +1992,27 @@
         setStatus(checklistStatus, 'Atualizando checklist...');
         setChecklistButtonsDisabled(true);
 
+        var started = Date.now();
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              dashboardData = normalizeData(response.items);
+              dashboardData.checklistTurno = normalizeChecklistData_(response.checklistTurno);
+              perfLog_('generateTodayMorningChecklist', started);
               renderAll();
               setStatus(checklistStatus, 'Checklist atualizado.');
               setChecklistButtonsDisabled(false);
+              showToast_('Checklist atualizado');
             })
             .withFailureHandler(function (error) {
               setStatus(checklistStatus, getErrorMessage(error), true);
               setChecklistButtonsDisabled(false);
+              showToast_(getErrorMessage(error), true);
             })
             .generateTodayMorningChecklist();
         } catch (error) {
           setStatus(checklistStatus, error.message, true);
           setChecklistButtonsDisabled(false);
+          showToast_(error.message, true);
         }
       }
 
@@ -1419,6 +2077,7 @@
         generalFields.classList.toggle('hidden', isMedication);
         medicineFields.classList.toggle('hidden', !isMedication);
         clearStatus(formStatus);
+        updateMedicinePriceVisibility_();
       }
 
       function toggleFormPanel() {
@@ -1427,19 +2086,44 @@
         toggleFormBtn.textContent = willOpen ? 'Fechar novo registro' : 'Novo registro';
       }
 
+      function removeOptimisticPlaceholder_(optimisticId, tab) {
+        if (tab === 'Geral') {
+          dashboardData.geral = (dashboardData.geral || []).filter(function (g) {
+            return g.ID !== optimisticId;
+          });
+        } else {
+          dashboardData.medicamentos = (dashboardData.medicamentos || []).filter(function (m) {
+            return m.ID !== optimisticId;
+          });
+        }
+      }
+
       function handleSubmit(event) {
         event.preventDefault();
         clearStatus(formStatus);
 
+        var operador = ensureOperadorForCriticalAction_();
+        if (!operador) {
+          setStatus(formStatus, 'Informe o operador atual no topo antes de salvar.', true);
+          return;
+        }
+
         const tab = categorySelect.value;
         const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
+        var isFalta = false;
+
         if (tab === 'Medicamentos') {
-          const priceResult = normalizePriceInput_(payload.precoVenda);
-          if (priceResult.error) {
-            setStatus(formStatus, priceResult.error, true);
-            return;
+          isFalta = String(payload.tipo || '').toLowerCase() === 'falta';
+          if (!isFalta) {
+            const priceResult = normalizePriceInput_(payload.precoVenda);
+            if (priceResult.error) {
+              setStatus(formStatus, priceResult.error, true);
+              return;
+            }
+            payload.precoVenda = priceResult.value;
+          } else {
+            payload.precoVenda = '';
           }
-          payload.precoVenda = priceResult.value;
         }
 
         const validationError = validatePayload(tab, payload);
@@ -1448,27 +2132,87 @@
           return;
         }
 
-        setFormLoading_(true);
-        setStatus(formStatus, 'Salvando...');
+        var optimisticId = 'opt-' + Date.now();
+        if (tab === 'Geral') {
+          dashboardData.geral.unshift({
+            ID: optimisticId,
+            Origem: 'Geral',
+            Timestamp: new Date().toISOString(),
+            Autor: payload.autor,
+            Descricao: payload.descricao,
+            Resolvido: false,
+            Ultima_Acao_Por: operador,
+            __syncState: 'syncing',
+          });
+        } else {
+          dashboardData.medicamentos.unshift({
+            ID: optimisticId,
+            Origem: 'Medicamentos',
+            Timestamp: new Date().toISOString(),
+            Tipo: payload.tipo,
+            Medicamento: payload.medicamento,
+            Pre_Pago: payload.prePago,
+            Cliente: payload.cliente,
+            Atendente: payload.atendente,
+            Previsao_Entrega: payload.previsaoEntrega,
+            Telefone: payload.telefone,
+            Comprado: false,
+            Entregue: false,
+            Status: 'Pendente',
+            Status_Aviso_WhatsApp: '',
+            Preco_Venda: isFalta ? '' : payload.precoVenda,
+            Ultima_Acao_Por: operador,
+            __syncState: 'syncing',
+          });
+        }
 
+        renderAll();
+        setFormLoading_(true);
+        saveButton.textContent = 'Salvando...';
+
+        var started = Date.now();
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              dashboardData = normalizeData(response.items);
+              removeOptimisticPlaceholder_(optimisticId, tab);
+              if (tab === 'Geral') {
+                upsertGeral_(response.record);
+              } else {
+                upsertMedicamento_(response.record);
+              }
+              perfLog_('saveData', started);
               renderAll();
               requestForm.reset();
               updateVisibleFields();
               setStatus(formStatus, 'Registro salvo com sucesso.');
               setFormLoading_(false);
+              saveButton.textContent = 'Salvar';
+              showToast_('Salvo');
             })
             .withFailureHandler(function (error) {
+              var list = tab === 'Geral' ? dashboardData.geral : dashboardData.medicamentos;
+              var row = (list || []).find(function (item) {
+                return item.ID === optimisticId;
+              });
+              if (row) {
+                row.__syncState = 'error';
+                row.__syncError = getErrorMessage(error);
+              }
+              perfLog_('saveData_fail', started);
+              renderAll();
               setStatus(formStatus, getErrorMessage(error), true);
               setFormLoading_(false);
+              saveButton.textContent = 'Salvar';
+              showToast_('Erro ao salvar', true);
             })
-            .saveData(tab, payload);
+            .saveData(tab, payload, operador);
         } catch (error) {
+          removeOptimisticPlaceholder_(optimisticId, tab);
           setStatus(formStatus, error.message, true);
           setFormLoading_(false);
+          saveButton.textContent = 'Salvar';
+          renderAll();
+          showToast_(error.message, true);
         }
       }
 
@@ -1522,67 +2266,88 @@
       }
 
       function notifyClientWhatsApp(id) {
-        setStatus(queueStatus, 'Registrando tentativa de aviso no WhatsApp...');
-        setQueueButtonsDisabled(true);
+        var medication = (dashboardData.medicamentos || []).find(function (m) {
+          return m.ID === id;
+        });
+        if (!medication) {
+          showToast_('Medicamento não encontrado.', true);
+          return;
+        }
+        if (!canShowWhatsAppButton(medication)) {
+          showToast_('WhatsApp disponível apenas em Comprado, Entregue ou Resolvido parcialmente.', true);
+          return;
+        }
+        var phone = normalizeBrazilPhoneClient_(medication.Telefone);
+        if (!phone) {
+          showToast_('Telefone vazio ou inválido.', true);
+          return;
+        }
+        var url =
+          'https://wa.me/' +
+          phone +
+          '?text=' +
+          encodeURIComponent(buildWhatsAppMessageClient_(medication.Cliente, medication.Medicamento));
+        window.open(url, '_blank');
 
-        let previewWindow = null;
-        try {
-          previewWindow = window.open('about:blank', '_blank');
-        } catch (error) {
-          previewWindow = null;
+        var operador = getOperadorAtual_();
+        if (!operador) {
+          showToast_('WhatsApp aberto. Informe o operador atual no topo para registrar a tentativa.', false);
         }
 
+        var started = Date.now();
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              dashboardData = normalizeData(response.items);
-              renderAll();
-              setStatus(queueStatus, 'Tentativa registrada. Abrindo WhatsApp...');
-              setQueueButtonsDisabled(false);
-
-              if (previewWindow) {
-                previewWindow.location.href = response.whatsAppUrl;
-              } else {
-                window.open(response.whatsAppUrl, '_blank');
+              if (response.record) {
+                upsertMedicamento_(response.record);
               }
+              perfLog_('registerWhatsAppAttempt', started);
+              renderQueue();
+              renderSummary();
+              clearStatus(queueStatus);
+              showToast_('Tentativa registrada');
             })
             .withFailureHandler(function (error) {
-              if (previewWindow) {
-                previewWindow.close();
-              }
-              setStatus(queueStatus, getErrorMessage(error), true);
-              setQueueButtonsDisabled(false);
+              perfLog_('registerWhatsAppAttempt_fail', started);
+              showToast_('Aviso: ' + getErrorMessage(error), true);
             })
-            .registerWhatsAppAttempt(id);
+            .registerWhatsAppAttempt(id, operador);
         } catch (error) {
-          if (previewWindow) {
-            previewWindow.close();
-          }
-          setStatus(queueStatus, error.message, true);
-          setQueueButtonsDisabled(false);
+          showToast_('Aviso: ' + error.message, true);
         }
       }
 
       function runQueueAction_(message, functionName, id) {
-        setStatus(queueStatus, message);
-        setQueueButtonsDisabled(true);
+        var operador = ensureOperadorForCriticalAction_();
+        if (!operador) {
+          showToast_('Informe o operador atual antes desta ação.', true);
+          return;
+        }
+
+        var started = Date.now();
+        clearStatus(queueStatus);
 
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              dashboardData = normalizeData(response.items);
+              perfLog_(functionName, started);
+              if (functionName === 'markAsResolved') {
+                removeGeralById_(response.removedId || id);
+              } else if (response.record) {
+                upsertMedicamento_(response.record);
+              }
               renderAll();
-              setStatus(queueStatus, 'Fila operacional atualizada.');
-              setQueueButtonsDisabled(false);
+              setStatus(queueStatus, message.replace(/\.\.\.$/, '') + ' concluído.');
+              showToast_('Atualizado');
             })
             .withFailureHandler(function (error) {
               setStatus(queueStatus, getErrorMessage(error), true);
-              setQueueButtonsDisabled(false);
+              showToast_(getErrorMessage(error), true);
             })
-            [functionName](id);
+            [functionName](id, operador);
         } catch (error) {
           setStatus(queueStatus, error.message, true);
-          setQueueButtonsDisabled(false);
+          showToast_(error.message, true);
         }
       }
 
@@ -1603,9 +2368,6 @@
         if (checklistToggleBtn) {
           checklistToggleBtn.disabled = disabled;
         }
-        checklistCategories.querySelectorAll('[data-check-action], button').forEach(function (button) {
-          button.disabled = disabled;
-        });
       }
 
       function normalizeData(data) {

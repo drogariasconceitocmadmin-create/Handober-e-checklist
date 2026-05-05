@@ -21,7 +21,17 @@ const CHECKLIST_STATUS = {
 };
 
 const HEADERS = {
-  Geral: ['ID', 'Timestamp', 'Autor', 'Descricao', 'Resolvido'],
+  Geral: [
+    'ID',
+    'Timestamp',
+    'Autor',
+    'Descricao',
+    'Resolvido',
+    'Ultima_Acao_Por',
+    'Ultima_Acao_Em',
+    'Resolvido_Por',
+    'Data_Resolucao',
+  ],
   Medicamentos: [
     'ID',
     'Timestamp',
@@ -38,6 +48,8 @@ const HEADERS = {
     'Status_Aviso_WhatsApp',
     'Data_Aviso_WhatsApp',
     'Preco_Venda',
+    'Ultima_Acao_Por',
+    'Ultima_Acao_Em',
   ],
   Arquivo_Resolvidos: [
     'Origem',
@@ -60,6 +72,10 @@ const HEADERS = {
     'Data_Aviso_WhatsApp',
     'Arquivado_Em',
     'Preco_Venda',
+    'Ultima_Acao_Por',
+    'Ultima_Acao_Em',
+    'Resolvido_Por',
+    'Data_Resolucao',
   ],
   Checklist_Turnos: [
     'ID',
@@ -362,6 +378,11 @@ function fetchChecklistItems_(dateKey, turno) {
     });
 }
 
+function fetchChecklistItemsForToday_() {
+  const dateKey = getChecklistDateKey_();
+  return fetchChecklistItems_(dateKey, CHECKLIST_TURNO_MANHA);
+}
+
 function getChecklistSummary_(items) {
   const totalItens = items.length;
   const itensFeitos = items.filter(function (item) {
@@ -386,6 +407,7 @@ function getChecklistSummary_(items) {
 }
 
 function updateChecklistItemStatus(id, status, responsavel) {
+  const started = Date.now();
   setupSpreadsheet();
 
   const location = findRowById_(SHEET_NAMES.CHECKLIST, id);
@@ -403,15 +425,21 @@ function updateChecklistItemStatus(id, status, responsavel) {
   location.sheet
     .getRange(location.rowNumber, dataHoraCheckColumn)
     .setValue(normalizedStatus === CHECKLIST_STATUS.PENDENTE ? '' : new Date());
-  location.sheet.getRange(location.rowNumber, responsavelColumn).setValue(responsavelValue);
+  location.sheet
+    .getRange(location.rowNumber, responsavelColumn)
+    .setValue(normalizedStatus === CHECKLIST_STATUS.PENDENTE ? '' : responsavelValue);
 
+  const updatedItem = fetchChecklistItemById_(id);
+  Logger.log('updateChecklistItemStatus ms=' + (Date.now() - started));
   return {
     success: true,
-    items: fetchData(),
+    checklistItem: updatedItem,
+    checklistSummary: getChecklistSummary_(fetchChecklistItemsForToday_()),
   };
 }
 
 function updateChecklistItemObservation(id, observacao, responsavel) {
+  const started = Date.now();
   setupSpreadsheet();
 
   const location = findRowById_(SHEET_NAMES.CHECKLIST, id);
@@ -427,9 +455,12 @@ function updateChecklistItemObservation(id, observacao, responsavel) {
     .getRange(location.rowNumber, responsavelColumn)
     .setValue(sanitizeText_(responsavel));
 
+  const updatedItem = fetchChecklistItemById_(id);
+  Logger.log('updateChecklistItemObservation ms=' + (Date.now() - started));
   return {
     success: true,
-    items: fetchData(),
+    checklistItem: updatedItem,
+    checklistSummary: getChecklistSummary_(fetchChecklistItemsForToday_()),
   };
 }
 
@@ -438,11 +469,26 @@ function generateTodayMorningChecklist() {
   ensureTodayMorningChecklist_();
   return {
     success: true,
-    items: fetchData(),
+    checklistTurno: buildChecklistTurnoPayload_(),
   };
 }
 
-function saveData(tab, data) {
+function buildChecklistTurnoPayload_() {
+  const checklistContext = ensureTodayMorningChecklist_();
+  const checklistItems = fetchChecklistItems_(checklistContext.dateKey, checklistContext.turno);
+
+  return {
+    data: checklistContext.dateKey,
+    turno: checklistContext.turno,
+    horarioReferencia: CHECKLIST_HORARIO_REFERENCIA,
+    isAfterDeadline: isAfterMorningDeadline_(checklistContext.dateKey),
+    items: checklistItems,
+    summary: getChecklistSummary_(checklistItems),
+  };
+}
+
+function saveData(tab, data, operador) {
+  const started = Date.now();
   setupSpreadsheet();
 
   if (tab !== SHEET_NAMES.GERAL && tab !== SHEET_NAMES.MEDICAMENTOS) {
@@ -453,88 +499,139 @@ function saveData(tab, data) {
   const sheet = getSheetOrThrow_(ss, tab);
   const id = Utilities.getUuid();
   const timestamp = new Date();
+  const op = sanitizeText_(operador);
+  const nowAcao = new Date();
 
   if (tab === SHEET_NAMES.GERAL) {
-    const row = [
-      id,
-      timestamp,
-      sanitizeText_(data.autor),
-      sanitizeText_(data.descricao),
-      false,
-    ];
-    sheet.appendRow(row);
+    const rowValues = buildRowFromHeaders_(HEADERS.Geral, {
+      ID: id,
+      Timestamp: timestamp,
+      Autor: sanitizeText_(data.autor),
+      Descricao: sanitizeText_(data.descricao),
+      Resolvido: false,
+      Ultima_Acao_Por: op,
+      Ultima_Acao_Em: op ? nowAcao : '',
+      Resolvido_Por: '',
+      Data_Resolucao: '',
+    });
+    sheet.appendRow(rowValues);
+
+    Logger.log('saveData Geral ms=' + (Date.now() - started));
+    return {
+      success: true,
+      record: fetchGeralRecordById_(id),
+    };
   }
 
   if (tab === SHEET_NAMES.MEDICAMENTOS) {
     const tipo = sanitizeText_(data.tipo);
     const previsaoEntrega = parseDate_(data.previsaoEntrega);
-    const precoVenda = parseSalePrice_(data.precoVenda);
+    const isFalta = tipo.toLowerCase() === 'falta';
+    const precoVenda = isFalta ? '' : parseSalePrice_(data.precoVenda);
     if (!previsaoEntrega) {
       throw new Error('Previsao_Entrega invalida. Use o formato YYYY-MM-DD com data real.');
     }
 
-    const row = [
-      id,
-      timestamp,
-      tipo,
-      sanitizeText_(data.medicamento),
-      toBoolean_(data.prePago),
-      sanitizeText_(data.cliente),
-      sanitizeText_(data.atendente),
-      previsaoEntrega,
-      false,
-      false,
-      sanitizeText_(data.telefone),
-      'Pendente',
-      '',
-      '',
-      precoVenda,
-    ];
-    sheet.appendRow(row);
+    const rowValues = buildRowFromHeaders_(HEADERS.Medicamentos, {
+      ID: id,
+      Timestamp: timestamp,
+      Tipo: tipo,
+      Medicamento: sanitizeText_(data.medicamento),
+      Pre_Pago: toBoolean_(data.prePago),
+      Cliente: sanitizeText_(data.cliente),
+      Atendente: sanitizeText_(data.atendente),
+      Previsao_Entrega: previsaoEntrega,
+      Comprado: false,
+      Entregue: false,
+      Telefone: sanitizeText_(data.telefone),
+      Status: 'Pendente',
+      Status_Aviso_WhatsApp: '',
+      Data_Aviso_WhatsApp: '',
+      Preco_Venda: precoVenda,
+      Ultima_Acao_Por: op,
+      Ultima_Acao_Em: op ? nowAcao : '',
+    });
+    sheet.appendRow(rowValues);
 
     if (tipo.toLowerCase() === 'encomenda') {
       sendOrderEmail_({
         id: id,
         timestamp: timestamp,
         tipo: tipo,
-        medicamento: row[3],
-        prePago: row[4],
-        cliente: row[5],
-        atendente: row[6],
-        previsaoEntrega: row[7],
+        medicamento: sanitizeText_(data.medicamento),
+        prePago: toBoolean_(data.prePago),
+        cliente: sanitizeText_(data.cliente),
+        atendente: sanitizeText_(data.atendente),
+        previsaoEntrega: previsaoEntrega,
       });
     }
+
+    Logger.log('saveData Medicamentos ms=' + (Date.now() - started));
+    return {
+      success: true,
+      record: fetchMedicationRecordById_(id),
+    };
   }
 
-  return {
-    success: true,
-    id: id,
-    items: fetchData(),
-  };
+  throw new Error('Aba invalida: ' + tab);
 }
 
 function fetchData() {
   setupSpreadsheet();
-  const checklistContext = ensureTodayMorningChecklist_();
-  const checklistItems = fetchChecklistItems_(checklistContext.dateKey, checklistContext.turno);
 
   return {
     geral: fetchSheetItems_(SHEET_NAMES.GERAL).filter(function (item) {
       return !item.Resolvido;
     }),
     medicamentos: fetchSheetItems_(SHEET_NAMES.MEDICAMENTOS),
-    checklistTurno: {
-      data: checklistContext.dateKey,
-      turno: checklistContext.turno,
-      horarioReferencia: CHECKLIST_HORARIO_REFERENCIA,
-      isAfterDeadline: isAfterMorningDeadline_(checklistContext.dateKey),
-      items: checklistItems,
-      summary: getChecklistSummary_(checklistItems),
-    },
+    checklistTurno: buildChecklistTurnoPayload_(),
   };
 }
 
-function markAsPurchased(id) {
+function fetchHistoricoResolvidos(limit) {
+  const started = Date.now();
+  setupSpreadsheet();
+
+  const sheet = getSheetOrThrow_(getSpreadsheet_(), SHEET_NAMES.ARQUIVO);
+  const lastRow = sheet.getLastRow();
+
+  if (lastRow <= 1) {
+    Logger.log('fetchHistoricoResolvidos ms=' + (Date.now() - started));
+    return {
+      success: true,
+      historico: [],
+    };
+  }
+
+  const headers = getHeaders_(sheet);
+  var lim = Number(limit);
+  if (isNaN(lim) || lim < 1) {
+    lim = 80;
+  }
+  lim = Math.min(Math.max(lim, 1), 200);
+
+  const firstRow = Math.max(2, lastRow - lim + 1);
+  const numRows = lastRow - firstRow + 1;
+  const values = sheet.getRange(firstRow, 1, firstRow + numRows - 1, headers.length).getValues();
+
+  const historico = values
+    .map(function (row) {
+      const archived = rowToObject_(headers, row);
+      archived.Origem = sanitizeText_(archived.Origem) || SHEET_NAMES.ARQUIVO;
+      normalizeItemForClient_(archived);
+      return archived;
+    })
+    .reverse();
+
+  Logger.log('fetchHistoricoResolvidos ms=' + (Date.now() - started));
+  return {
+    success: true,
+    historico: historico,
+  };
+}
+
+function markAsPurchased(id, operador) {
+  const started = Date.now();
   setupSpreadsheet();
 
   const location = findRowById_(SHEET_NAMES.MEDICAMENTOS, id);
@@ -545,14 +642,17 @@ function markAsPurchased(id) {
   const compradoColumn = getColumnIndex_(location.sheet, 'Comprado');
   location.sheet.getRange(location.rowNumber, compradoColumn).setValue(true);
   syncMedicationStatus_(location.sheet, location.rowNumber);
+  writeMedicationUltimaAcao_(location.sheet, location.rowNumber, operador);
 
+  Logger.log('markAsPurchased ms=' + (Date.now() - started));
   return {
     success: true,
-    items: fetchData(),
+    record: fetchMedicationRecordById_(id),
   };
 }
 
-function markAsDelivered(id) {
+function markAsDelivered(id, operador) {
+  const started = Date.now();
   setupSpreadsheet();
 
   const location = findRowById_(SHEET_NAMES.MEDICAMENTOS, id);
@@ -565,14 +665,17 @@ function markAsDelivered(id) {
   location.sheet.getRange(location.rowNumber, compradoColumn).setValue(true);
   location.sheet.getRange(location.rowNumber, entregueColumn).setValue(true);
   syncMedicationStatus_(location.sheet, location.rowNumber);
+  writeMedicationUltimaAcao_(location.sheet, location.rowNumber, operador);
 
+  Logger.log('markAsDelivered ms=' + (Date.now() - started));
   return {
     success: true,
-    items: fetchData(),
+    record: fetchMedicationRecordById_(id),
   };
 }
 
-function markAsResolved(id) {
+function markAsResolved(id, operador) {
+  const started = Date.now();
   setupSpreadsheet();
 
   const location = findRowById_(SHEET_NAMES.GERAL, id);
@@ -580,13 +683,24 @@ function markAsResolved(id) {
     throw new Error('Solicitacao geral nao encontrada: ' + id);
   }
 
-  const resolvidoColumn = getColumnIndex_(location.sheet, 'Resolvido');
-  location.sheet.getRange(location.rowNumber, resolvidoColumn).setValue(true);
-  moveRowToResolved(SHEET_NAMES.GERAL, location.rowNumber);
+  const sheet = location.sheet;
+  const rowNumber = location.rowNumber;
+  const op = sanitizeText_(operador);
+  const now = new Date();
 
+  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Ultima_Acao_Por')).setValue(op);
+  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Ultima_Acao_Em')).setValue(now);
+  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Resolvido_Por')).setValue(op);
+  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Data_Resolucao')).setValue(now);
+
+  const resolvidoColumn = getColumnIndex_(sheet, 'Resolvido');
+  sheet.getRange(rowNumber, resolvidoColumn).setValue(true);
+  moveRowToResolved(SHEET_NAMES.GERAL, rowNumber);
+
+  Logger.log('markAsResolved ms=' + (Date.now() - started));
   return {
     success: true,
-    items: fetchData(),
+    removedId: id,
   };
 }
 
@@ -650,10 +764,14 @@ function onEdit(e) {
     if (e.range.getColumn() === statusColumn) {
       const normalizedStatus = normalizeChecklistStatus_(e.value);
       const dataHoraCheckColumn = getColumnIndex_(sheet, 'Data_Hora_Check');
+      const responsavelColumn = getColumnIndex_(sheet, 'Responsavel');
       sheet.getRange(rowNumber, statusColumn).setValue(normalizedStatus);
       sheet
         .getRange(rowNumber, dataHoraCheckColumn)
         .setValue(normalizedStatus === CHECKLIST_STATUS.PENDENTE ? '' : new Date());
+      if (normalizedStatus === CHECKLIST_STATUS.PENDENTE) {
+        sheet.getRange(rowNumber, responsavelColumn).setValue('');
+      }
     }
   }
 }
@@ -765,6 +883,71 @@ function rowToObject_(headers, row) {
   }, {});
 }
 
+function buildRowFromHeaders_(headers, valuesByHeader) {
+  return headers.map(function (header) {
+    return Object.prototype.hasOwnProperty.call(valuesByHeader, header)
+      ? valuesByHeader[header]
+      : '';
+  });
+}
+
+function fetchMedicationRecordById_(id) {
+  const location = findRowById_(SHEET_NAMES.MEDICAMENTOS, id);
+  if (!location) {
+    return null;
+  }
+
+  const headers = getHeaders_(location.sheet);
+  const rowValues = location.sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
+  const item = rowToObject_(headers, rowValues);
+  item.Origem = SHEET_NAMES.MEDICAMENTOS;
+  normalizeItemForClient_(item);
+  return item;
+}
+
+function fetchGeralRecordById_(id) {
+  const location = findRowById_(SHEET_NAMES.GERAL, id);
+  if (!location) {
+    return null;
+  }
+
+  const headers = getHeaders_(location.sheet);
+  const rowValues = location.sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
+  const item = rowToObject_(headers, rowValues);
+  item.Origem = SHEET_NAMES.GERAL;
+  normalizeItemForClient_(item);
+  return item;
+}
+
+function fetchChecklistItemById_(id) {
+  const location = findRowById_(SHEET_NAMES.CHECKLIST, id);
+  if (!location) {
+    return null;
+  }
+
+  const headers = getHeaders_(location.sheet);
+  const rowValues = location.sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
+  const item = rowToObject_(headers, rowValues);
+  normalizeChecklistItemForClient_(item);
+  return item;
+}
+
+function writeMedicationUltimaAcao_(sheet, rowNumber, operador) {
+  const op = sanitizeText_(operador);
+  if (!op) {
+    return;
+  }
+
+  try {
+    const colPor = getColumnIndex_(sheet, 'Ultima_Acao_Por');
+    const colEm = getColumnIndex_(sheet, 'Ultima_Acao_Em');
+    sheet.getRange(rowNumber, colPor).setValue(op);
+    sheet.getRange(rowNumber, colEm).setValue(new Date());
+  } catch (error) {
+    Logger.log('writeMedicationUltimaAcao_: ' + error);
+  }
+}
+
 function buildArchiveRow_(sheetName, item) {
   const archiveObject = {
     Origem: sheetName,
@@ -790,6 +973,10 @@ function buildArchiveRow_(sheetName, item) {
       item.Preco_Venda === '' || item.Preco_Venda === null || item.Preco_Venda === undefined
         ? ''
         : item.Preco_Venda,
+    Ultima_Acao_Por: sanitizeText_(item.Ultima_Acao_Por || ''),
+    Ultima_Acao_Em: item.Ultima_Acao_Em || '',
+    Resolvido_Por: sanitizeText_(item.Resolvido_Por || ''),
+    Data_Resolucao: item.Data_Resolucao || '',
   };
 
   return HEADERS.Arquivo_Resolvidos.map(function (header) {
@@ -859,6 +1046,10 @@ function normalizeItemForClient_(item) {
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
   item.Preco_Venda = normalizeSalePriceForClient_(item.Preco_Venda);
+
+  if (sanitizeText_(item.Tipo).toLowerCase() === 'falta') {
+    item.Preco_Venda = '';
+  }
 }
 
 function normalizeChecklistItemForClient_(item) {
@@ -1094,7 +1285,8 @@ function sendOrderEmail_(order) {
   MailApp.sendEmail(EMAIL_ENCOMENDAS, subject, body);
 }
 
-function registerWhatsAppAttempt(id) {
+function registerWhatsAppAttempt(id, operador) {
+  const started = Date.now();
   setupSpreadsheet();
 
   const location = findRowById_(SHEET_NAMES.MEDICAMENTOS, id);
@@ -1127,11 +1319,13 @@ function registerWhatsAppAttempt(id) {
 
   sheet.getRange(location.rowNumber, statusAvisoColumn).setValue('Tentativa registrada');
   sheet.getRange(location.rowNumber, dataAvisoColumn).setValue(new Date());
+  writeMedicationUltimaAcao_(sheet, location.rowNumber, operador);
 
+  Logger.log('registerWhatsAppAttempt ms=' + (Date.now() - started));
   return {
     success: true,
     whatsAppUrl: 'https://wa.me/' + normalizedPhone + '?text=' + encodeURIComponent(message),
-    items: fetchData(),
+    record: fetchMedicationRecordById_(id),
   };
 }
 
