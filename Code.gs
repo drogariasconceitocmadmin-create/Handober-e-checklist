@@ -88,6 +88,7 @@ function doGet() {
   return template
     .evaluate()
     .setTitle('Solicitacoes Drogaria')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
