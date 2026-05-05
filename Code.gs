@@ -155,7 +155,11 @@ function setupSpreadsheet() {
 
   Object.keys(HEADERS).forEach(function (sheetName) {
     const sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
-    ensureHeaders_(sheet, HEADERS[sheetName]);
+    if (sheetName === SHEET_NAMES.GERAL || sheetName === SHEET_NAMES.ARQUIVO) {
+      ensureHeadersLegacyAdditive_(sheet, HEADERS[sheetName]);
+    } else {
+      ensureHeaders_(sheet, HEADERS[sheetName]);
+    }
   });
 }
 
@@ -284,7 +288,8 @@ function getChecklistTemplateOrderMap_() {
 function ensureTodayMorningChecklist_() {
   const ss = getSpreadsheet_();
   const sheet = getSheetOrThrow_(ss, SHEET_NAMES.CHECKLIST);
-  const headers = getHeaders_(sheet);
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const template = getChecklistTemplate_();
   const dateKey = getChecklistDateKey_();
   const turno = CHECKLIST_TURNO_MANHA;
@@ -293,9 +298,9 @@ function ensureTodayMorningChecklist_() {
   const existingKeys = new Set();
   const lastRow = sheet.getLastRow();
   if (lastRow > 1) {
-    const values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
     values.forEach(function (row) {
-      const rowObject = rowToObject_(headers, row);
+      const rowObject = rowCellsToObject_(headerCells, row);
       const rowDate = normalizeDateKeyCell_(rowObject.Data);
       const rowTurno = sanitizeText_(rowObject.Turno);
       const rowItem = sanitizeText_(rowObject.Item);
@@ -337,7 +342,17 @@ function ensureTodayMorningChecklist_() {
   });
 
   if (rowsToInsert.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToInsert.length, headers.length).setValues(rowsToInsert);
+    var insertWidth = rowsToInsert[0].length;
+    if (insertWidth < lastCol) {
+      rowsToInsert = rowsToInsert.map(function (row) {
+        var extended = row.slice();
+        while (extended.length < lastCol) {
+          extended.push('');
+        }
+        return extended;
+      });
+    }
+    sheet.getRange(sheet.getLastRow() + 1, 1, rowsToInsert.length, lastCol).setValues(rowsToInsert);
   }
 
   return {
@@ -350,7 +365,8 @@ function ensureTodayMorningChecklist_() {
 function fetchChecklistItems_(dateKey, turno) {
   const ss = getSpreadsheet_();
   const sheet = getSheetOrThrow_(ss, SHEET_NAMES.CHECKLIST);
-  const headers = getHeaders_(sheet);
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const filterDateKey = dateKey || getChecklistDateKey_();
   const filterTurno = turno || CHECKLIST_TURNO_MANHA;
 
@@ -358,12 +374,12 @@ function fetchChecklistItems_(dateKey, turno) {
     return [];
   }
 
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastCol).getValues();
   const orderMap = getChecklistTemplateOrderMap_();
 
   return values
     .map(function (row) {
-      const item = rowToObject_(headers, row);
+      const item = rowCellsToObject_(headerCells, row);
       normalizeChecklistItemForClient_(item);
       return item;
     })
@@ -507,7 +523,7 @@ function saveData(tab, data, operador) {
   const nowAcao = new Date();
 
   if (tab === SHEET_NAMES.GERAL) {
-    const rowValues = buildRowFromHeaders_(HEADERS.Geral, {
+    const namedRow = {
       ID: id,
       Timestamp: timestamp,
       Autor: sanitizeText_(data.autor),
@@ -519,8 +535,8 @@ function saveData(tab, data, operador) {
       Ultima_Acao_Em: op ? nowAcao : '',
       Resolvido_Por: '',
       Data_Resolucao: '',
-    });
-    sheet.appendRow(rowValues);
+    };
+    sheet.appendRow(buildAppendRowValuesFromNamedMap_(sheet, namedRow));
 
     Logger.log('saveData Geral ms=' + (Date.now() - started));
     return {
@@ -609,7 +625,8 @@ function fetchHistoricoResolvidos(limit) {
     };
   }
 
-  const headers = getHeaders_(sheet);
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var lim = Number(limit);
   if (isNaN(lim) || lim < 1) {
     lim = 80;
@@ -618,11 +635,11 @@ function fetchHistoricoResolvidos(limit) {
 
   const firstRow = Math.max(2, lastRow - lim + 1);
   const numRows = lastRow - firstRow + 1;
-  const values = sheet.getRange(firstRow, 1, firstRow + numRows - 1, headers.length).getValues();
+  const values = sheet.getRange(firstRow, 1, numRows, lastCol).getValues();
 
   const historico = values
     .map(function (row) {
-      const archived = rowToObject_(headers, row);
+      const archived = rowCellsToObject_(headerCells, row);
       archived.Origem = sanitizeText_(archived.Origem) || SHEET_NAMES.ARQUIVO;
       normalizeItemForClient_(archived);
       return archived;
@@ -721,12 +738,9 @@ function moveRowToResolved(sheetName, rowNumber) {
     throw new Error('Linha invalida para arquivamento: ' + rowNumber);
   }
 
-  const sourceHeaders = getHeaders_(sourceSheet);
-  const sourceValues = sourceSheet.getRange(rowNumber, 1, 1, sourceHeaders.length).getValues()[0];
-  const sourceObject = rowToObject_(sourceHeaders, sourceValues);
-  const archiveRow = buildArchiveRow_(sheetName, sourceObject);
+  const sourceObject = rowToObjectFromSheetRow_(sourceSheet, rowNumber);
+  appendArchiveNamedRow_(archiveSheet, sheetName, sourceObject);
 
-  archiveSheet.appendRow(archiveRow);
   sourceSheet.deleteRow(rowNumber);
 
   return true;
@@ -828,15 +842,53 @@ function fetchSheetItems_(sheetName) {
     return [];
   }
 
-  const headers = getHeaders_(sheet);
-  const values = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  const headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  const values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
 
   return values.map(function (row) {
-    const item = rowToObject_(headers, row);
+    const item = rowCellsToObject_(headerCells, row);
     item.Origem = sheetName;
     normalizeItemForClient_(item);
     return item;
   });
+}
+
+function ensureHeadersLegacyAdditive_(sheet, expectedHeaders) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var lastRow = sheet.getLastRow();
+  var raw = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var labels = raw.map(function (cell) {
+    return String(cell || '').trim();
+  });
+
+  var hasAnyHeader = labels.some(function (label) {
+    return !!label;
+  });
+
+  if (!hasAnyHeader) {
+    writeHeaderRow_(sheet, expectedHeaders, Math.max(lastCol, expectedHeaders.length));
+    return;
+  }
+
+  var missing = computeMissingExpectedHeaders_(labels, expectedHeaders);
+  if (missing.length === 0) {
+    sheet.setFrozenRows(1);
+    return;
+  }
+
+  var effectiveLast = labels.length;
+  while (effectiveLast > 0 && !labels[effectiveLast - 1]) {
+    effectiveLast--;
+  }
+
+  var nextCol = effectiveLast + 1;
+  missing.forEach(function (headerLabel) {
+    sheet.getRange(1, nextCol).setValue(headerLabel);
+    nextCol++;
+  });
+
+  sheet.setFrozenRows(1);
 }
 
 function ensureHeaders_(sheet, expectedHeaders) {
@@ -880,17 +932,6 @@ function ensureHeaders_(sheet, expectedHeaders) {
   );
 }
 
-function getHeaders_(sheet) {
-  return sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].filter(String);
-}
-
-function rowToObject_(headers, row) {
-  return headers.reduce(function (object, header, index) {
-    object[header] = row[index];
-    return object;
-  }, {});
-}
-
 function buildRowFromHeaders_(headers, valuesByHeader) {
   return headers.map(function (header) {
     return Object.prototype.hasOwnProperty.call(valuesByHeader, header)
@@ -905,9 +946,7 @@ function fetchMedicationRecordById_(id) {
     return null;
   }
 
-  const headers = getHeaders_(location.sheet);
-  const rowValues = location.sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
-  const item = rowToObject_(headers, rowValues);
+  const item = rowToObjectFromSheetRow_(location.sheet, location.rowNumber);
   item.Origem = SHEET_NAMES.MEDICAMENTOS;
   normalizeItemForClient_(item);
   return item;
@@ -919,9 +958,7 @@ function fetchGeralRecordById_(id) {
     return null;
   }
 
-  const headers = getHeaders_(location.sheet);
-  const rowValues = location.sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
-  const item = rowToObject_(headers, rowValues);
+  const item = rowToObjectFromSheetRow_(location.sheet, location.rowNumber);
   item.Origem = SHEET_NAMES.GERAL;
   normalizeItemForClient_(item);
   return item;
@@ -933,9 +970,7 @@ function fetchChecklistItemById_(id) {
     return null;
   }
 
-  const headers = getHeaders_(location.sheet);
-  const rowValues = location.sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
-  const item = rowToObject_(headers, rowValues);
+  const item = rowToObjectFromSheetRow_(location.sheet, location.rowNumber);
   normalizeChecklistItemForClient_(item);
   return item;
 }
@@ -956,15 +991,20 @@ function writeMedicationUltimaAcao_(sheet, rowNumber, operador) {
   }
 }
 
-function buildArchiveRow_(sheetName, item) {
-  const archiveObject = {
+function buildArchiveNamedValues_(sheetName, item) {
+  var descricao =
+    item.Descricao !== undefined && item.Descricao !== null && item.Descricao !== ''
+      ? item.Descricao
+      : item['Descrição'];
+
+  return {
     Origem: sheetName,
     ID: item.ID || '',
     Timestamp: item.Timestamp || '',
     Tipo: item.Tipo || '',
     Autor: item.Autor || '',
-    Descricao: item.Descricao || '',
-    Titulo: sanitizeText_(item.Titulo || ''),
+    Descricao: descricao || '',
+    Titulo: sanitizeText_(item.Titulo || item['Título'] || item.Assunto || ''),
     Urgencia: normalizeUrgenciaGeral_(item.Urgencia || ''),
     Medicamento: item.Medicamento || '',
     Pre_Pago: item.Pre_Pago || false,
@@ -988,10 +1028,11 @@ function buildArchiveRow_(sheetName, item) {
     Resolvido_Por: sanitizeText_(item.Resolvido_Por || ''),
     Data_Resolucao: item.Data_Resolucao || '',
   };
+}
 
-  return HEADERS.Arquivo_Resolvidos.map(function (header) {
-    return archiveObject[header];
-  });
+function appendArchiveNamedRow_(archiveSheet, sheetName, sourceObject) {
+  var archiveNamed = buildArchiveNamedValues_(sheetName, sourceObject);
+  archiveSheet.appendRow(buildAppendRowValuesFromNamedMap_(archiveSheet, archiveNamed));
 }
 
 function findRowById_(sheetName, id) {
@@ -1017,14 +1058,21 @@ function findRowById_(sheetName, id) {
 }
 
 function getColumnIndex_(sheet, headerName) {
-  const headers = getHeaders_(sheet);
-  const index = headers.indexOf(headerName);
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var row = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var target = canonicalHeaderKey_(headerName);
 
-  if (index === -1) {
-    throw new Error('Coluna nao encontrada: ' + headerName);
+  for (var index = 0; index < row.length; index++) {
+    var label = String(row[index] || '').trim();
+    if (!label) {
+      continue;
+    }
+    if (canonicalHeaderKey_(label) === target) {
+      return index + 1;
+    }
   }
 
-  return index + 1;
+  throw new Error('Coluna nao encontrada: ' + headerName);
 }
 
 function getSheetOrThrow_(spreadsheet, sheetName) {
@@ -1056,8 +1104,19 @@ function normalizeItemForClient_(item) {
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
   item.Preco_Venda = normalizeSalePriceForClient_(item.Preco_Venda);
-  item.Titulo = sanitizeText_(item.Titulo);
-  item.Urgencia = normalizeUrgenciaGeral_(item.Urgencia);
+
+  if (isGeralLikeRecord_(item)) {
+    normalizeGeralAliases_(item);
+    item.Titulo =
+      sanitizeText_(item.Titulo) ||
+      sanitizeText_(item.Assunto) ||
+      summarizeDescricaoForTitle_(item.Descricao) ||
+      'Solicitação geral';
+    item.Urgencia = normalizeUrgenciaGeral_(item.Urgencia);
+  } else {
+    item.Titulo = sanitizeText_(item.Titulo);
+    item.Urgencia = normalizeUrgenciaGeral_(item.Urgencia);
+  }
 
   if (sanitizeText_(item.Tipo).toLowerCase() === 'falta') {
     item.Preco_Venda = '';
@@ -1315,9 +1374,7 @@ function registerWhatsAppAttempt(id, operador) {
   }
 
   const sheet = location.sheet;
-  const headers = getHeaders_(sheet);
-  const rowValues = sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
-  const item = rowToObject_(headers, rowValues);
+  const item = rowToObjectFromSheetRow_(sheet, location.rowNumber);
   normalizeItemForClient_(item);
 
   if (!canShowWhatsAppButton_(item)) {
@@ -1435,4 +1492,175 @@ function normalizeHeaderName_(header) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '_');
+}
+
+function canonicalHeaderKey_(header) {
+  var base = normalizeHeaderName_(header);
+  try {
+    if (typeof base.normalize === 'function') {
+      return base
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+    }
+  } catch (error) {
+    Logger.log('canonicalHeaderKey_: ' + error);
+  }
+  return base;
+}
+
+function computeMissingExpectedHeaders_(existingHeaderCells, expectedHeaders) {
+  var existsNorm = {};
+  existingHeaderCells.forEach(function (label) {
+    var trimmed = String(label || '').trim();
+    if (trimmed) {
+      existsNorm[canonicalHeaderKey_(trimmed)] = true;
+    }
+  });
+
+  var missing = [];
+  expectedHeaders.forEach(function (expected) {
+    var key = canonicalHeaderKey_(expected);
+    if (!existsNorm[key]) {
+      missing.push(expected);
+      existsNorm[key] = true;
+    }
+  });
+  return missing;
+}
+
+function rowCellsToObject_(headerCells, valueCells) {
+  var object = {};
+  for (var index = 0; index < headerCells.length; index++) {
+    var header = String(headerCells[index] || '').trim();
+    if (!header) {
+      continue;
+    }
+    object[header] = valueCells[index];
+  }
+  return object;
+}
+
+function rowToObjectFromSheetRow_(sheet, rowNumber) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var valueCells = sheet.getRange(rowNumber, 1, rowNumber, lastCol).getValues()[0];
+  return rowCellsToObject_(headerCells, valueCells);
+}
+
+function lookupNamedValueInMap_(namedValues, sheetHeaderLabel) {
+  var rawLabel = String(sheetHeaderLabel || '').trim();
+  if (!rawLabel) {
+    return '';
+  }
+  if (Object.prototype.hasOwnProperty.call(namedValues, rawLabel)) {
+    return namedValues[rawLabel];
+  }
+  var target = canonicalHeaderKey_(rawLabel);
+  var keys = Object.keys(namedValues);
+  for (var i = 0; i < keys.length; i++) {
+    if (canonicalHeaderKey_(keys[i]) === target) {
+      return namedValues[keys[i]];
+    }
+  }
+  return '';
+}
+
+function buildAppendRowValuesFromNamedMap_(sheet, namedValues) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var out = [];
+  for (var i = 0; i < headerCells.length; i++) {
+    out.push(lookupNamedValueInMap_(namedValues, headerCells[i]));
+  }
+  return out;
+}
+
+function summarizeDescricaoForTitle_(text, maxLen) {
+  var s = sanitizeText_(text);
+  if (!s) {
+    return '';
+  }
+  var limit = maxLen || 80;
+  if (s.length <= limit) {
+    return s;
+  }
+  return s.substring(0, limit - 1) + '\u2026';
+}
+
+function normalizeGeralAliases_(item) {
+  if (!item) {
+    return;
+  }
+  if (
+    (item.Descricao === undefined || item.Descricao === '' || item.Descricao === null) &&
+    item['Descrição'] !== undefined &&
+    item['Descrição'] !== '' &&
+    item['Descrição'] !== null
+  ) {
+    item.Descricao = item['Descrição'];
+  }
+}
+
+function isGeralLikeRecord_(item) {
+  return !sanitizeText_(item.Medicamento);
+}
+
+/**
+ * Autoteste local: sem alterar planilha; validar deduplicação de headers e fallbacks de Geral.
+ * Executar no editor Apps Script: selecionar função e Rodar.
+ */
+function selfTestSchemaGeralCompat_() {
+  var failures = [];
+
+  var legacyLabels = ['ID', 'Timestamp', 'Autor', 'Descricao', 'Resolvido'];
+  var missing = computeMissingExpectedHeaders_(legacyLabels, HEADERS.Geral);
+  var expectedMissing = [
+    'Titulo',
+    'Urgencia',
+    'Ultima_Acao_Por',
+    'Ultima_Acao_Em',
+    'Resolvido_Por',
+    'Data_Resolucao',
+  ];
+  if (missing.join('|') !== expectedMissing.join('|')) {
+    failures.push('missing headers: ' + missing.join(',') + ' (esperado ' + expectedMissing.join(',') + ')');
+  }
+
+  if (canonicalHeaderKey_('Descrição') !== canonicalHeaderKey_('Descricao')) {
+    failures.push('accent fold Descricao/Descrição');
+  }
+
+  var longBody =
+    'Um texto bem longo para testar o resumo automático usado quando não há título nem assunto no legacy ';
+  longBody = longBody + longBody + longBody;
+
+  var item = {
+    Descricao: longBody,
+    Medicamento: '',
+  };
+  normalizeItemForClient_(item);
+  if (!item.Titulo || item.Titulo.length > 85) {
+    failures.push('titulo fallback por descricao (comprimento)');
+  }
+  if (item.Urgencia !== 'Normal') {
+    failures.push('urgencia default');
+  }
+
+  var item2 = {
+    Titulo: '',
+    Assunto: 'Pedido especial',
+    Descricao: 'detalhe',
+    Medicamento: '',
+  };
+  normalizeItemForClient_(item2);
+  if (item2.Titulo !== 'Pedido especial') {
+    failures.push('titulo via Assunto');
+  }
+
+  if (failures.length) {
+    Logger.log('selfTestSchemaGeralCompat_ FALHA: ' + failures.join(' | '));
+    return false;
+  }
+  Logger.log('selfTestSchemaGeralCompat_ OK');
+  return true;
 }

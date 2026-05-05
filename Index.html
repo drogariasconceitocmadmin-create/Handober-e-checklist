@@ -1364,6 +1364,22 @@
         return parts.join(' | ');
       }
 
+      function geralQueueTitleFromItem_(item) {
+        var t = String(item.Titulo || '').trim();
+        if (t) return t;
+        t = String(item.Assunto || '').trim();
+        if (t) return t;
+        var d = String(item.Descricao || '').trim();
+        if (d.length > 80) return d.substring(0, 79) + '\u2026';
+        if (d) return d;
+        return 'Solicitação geral';
+      }
+
+      function geralQueueUrgenciaFromItem_(item) {
+        var u = String(item.Urgencia || '').trim();
+        return u || 'Normal';
+      }
+
       function buildHistoricoQueueItems_(rows) {
         return (rows || []).map(function (item) {
           var origem = String(item.Origem || '');
@@ -1383,19 +1399,20 @@
           };
 
           if (origem === 'Geral') {
-            var ht = String(item.Titulo || '').trim();
-            var hu = String(item.Urgencia || 'Normal').trim() || 'Normal';
+            var ht = geralQueueTitleFromItem_(item);
+            var hu = geralQueueUrgenciaFromItem_(item);
             return Object.assign({}, base, {
               originLabel: 'Histórico · Geral',
               statusLabel: 'Resolvido',
               statusKey: 'historico_resolvido',
-              title: ht || item.Descricao || 'Registro arquivado',
+              title: ht,
               description:
                 'Autor: ' +
                 (item.Autor || '-') +
                 ' · Urgência: ' +
                 hu +
-                (ht ? ' · Descrição: ' + (item.Descricao || '-') : ''),
+                ' · Descrição: ' +
+                (item.Descricao || '-'),
               person: item.Autor || '-',
               forecast: '',
               price: '',
@@ -1533,15 +1550,16 @@
       function buildWorkQueueItems(data) {
         const generalItems = (data.geral || []).map(function (item) {
           var audit = buildAuditMetaLine_(item);
-          var titulo = String(item.Titulo || '').trim();
-          var urg = String(item.Urgencia || 'Normal').trim() || 'Normal';
-          var titleLine = titulo || item.Descricao || 'Solicitação sem descrição';
+          var titulo = geralQueueTitleFromItem_(item);
+          var urg = geralQueueUrgenciaFromItem_(item);
+          var titleLine = titulo;
           var descLine =
             'Autor: ' +
             (item.Autor || '-') +
             ' · Urgência: ' +
             urg +
-            (titulo ? ' · Descrição: ' + (item.Descricao || '-') : '');
+            ' · Descrição: ' +
+            (item.Descricao || '-');
           return {
             id: item.ID,
             type: 'geral',
