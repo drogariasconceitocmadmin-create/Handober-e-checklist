@@ -1,57 +1,55 @@
 {
-  "projeto": "Handover — Drogarias Conceito",
-  "versao_publicada": 19,
-  "status_validacao": {
-    "resultado_global": "PARCIAL",
-    "motivo_parcial": "Ressalva administrativa: clasp push com --force e HEAD em commit de governança (f4a36e3); testes funcionais OK.",
-    "ressalva_administrativa_encerrada_por_registro": true
+  "projeto": "Handover - Drogarias Conceito",
+  "status_geral": "FALHA",
+  "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
+  "branch": "master",
+  "commit_validado": "9541ea6",
+  "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
+  "spreadsheetId_informado": "1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8",
+  "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
+  "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
+  "pre_deploy": {
+    "resultado": "OK",
+    "arquivos_alterados": [
+      "Code.gs",
+      "Index.html"
+    ],
+    "sheet_clear": false,
+    "pop_referenciado": false
   },
-  "commits": {
-    "funcional_validado_p0": "e9e78d8",
-    "governanca_repositorio": "f4a36e3"
+  "publicacao": {
+    "clasp_push": true,
+    "versao_criada": 20,
+    "deploy_v20_realizado": true,
+    "rollback_realizado": true,
+    "versao_final_deployment": 19
   },
-  "deployment": {
-    "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
-    "url_web_app": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec"
+  "smoke_desktop": {
+    "resultado": "FALHA",
+    "abertura": "FALHA",
+    "dashboard": "NAO_VALIDADO",
+    "modal": "NAO_VALIDADO",
+    "geral": "NAO_VALIDADO",
+    "medicamento_falta": "NAO_VALIDADO",
+    "medicamento_encomenda": "NAO_VALIDADO",
+    "comprado_otimista": "NAO_VALIDADO",
+    "whatsapp": "NAO_VALIDADO",
+    "checklist_rascunho_observacao": "NAO_VALIDADO",
+    "historico": "NAO_VALIDADO"
   },
-  "scriptId_handover": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
-  "pop_tocado": false,
-  "agente_publicacao_validacao": "Codex",
-  "testes_funcionais": {
-    "desktop_abertura": "OK",
-    "performance_percebida": "OK",
-    "geral": "OK",
-    "medicamento_falta": "OK",
-    "medicamento_encomenda": "OK",
-    "whatsapp": "OK",
-    "checklist": "OK",
-    "operador_responsabilidade": "OK",
-    "historico_resolvidos": "OK"
-  },
+  "registros_criados": [],
   "falhas": {
-    "criticas": [],
-    "medias": [
+    "criticas": [
       {
-        "tipo": "git_clasp",
-        "descricao": "clasp push exigiu --force; HEAD local em f4a36e3 (governança, sem mudança funcional vs e9e78d8 para o P0)."
+        "area": "schema",
+        "mensagem": "Estrutura de cabecalho incompativel na aba Geral. Ajuste manualmente os cabecalhos para incluir Titulo e Urgencia.",
+        "impacto": "Web App nao abre na versao 20.",
+        "arquivo_funcao_provavel": "Code.gs / ensureHeaders_"
       }
     ],
-    "leves": [
-      {
-        "tipo": "automacao",
-        "descricao": "Limitação Playwright com select/date no iframe do Web App."
-      }
-    ]
+    "medias": [],
+    "leves": []
   },
-  "registros_teste": [
-    "CODEX_SMOKE_HANDOVER 1778019281748 Geral",
-    "CODEX_SMOKE_HANDOVER FALTA 1778019489260",
-    "CODEX_SMOKE_HANDOVER ENCOMENDA 1778019540225"
-  ],
-  "documentacao_relacionada": [
-    "aios/skills/handover/SKILL.md",
-    "aios/skills/gas-safety/SKILL.md",
-    "tasks/current.md",
-    "reports/validacao-handover-atual.md"
-  ]
+  "pop_tocado": false,
+  "veredito": "Publicacao bloqueada. Motivo: falha critica de schema/cabecalho na aba Geral ao abrir o Web App na versao 20."
 }

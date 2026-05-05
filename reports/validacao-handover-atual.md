@@ -1,95 +1,88 @@
-# Validação e publicação — Handover (versão 19)
+# Validacao Handover - commit 9541ea6
 
-**Projeto:** Handover — Drogarias Conceito  
-**Pasta:** `C:\Users\Marco\Desktop\Sis Drogaria\Handover`  
-**Registro de governança:** este arquivo faz parte do fluxo `aios/` + `tasks/` + `reports/`.
+Projeto: Handover - Drogarias Conceito
 
----
+Pasta: `C:\Users\Marco\Desktop\Sis Drogaria\Handover`
 
-## Sumário executivo
+Branch: `master`
 
-| Campo | Valor |
-|--------|--------|
-| **Versão publicada** | 19 |
-| **Resultado global** | **PARCIAL** apenas por ressalva administrativa (HEAD / `clasp push`); **testes funcionais OK** |
-| **Falhas críticas** | Nenhuma |
-| **POP tocado** | **Não** |
+Commit validado: `9541ea6 - Handover: rascunho checklist preservado, modal novo registro, Geral titulo/urgencia, atalhos data, comprado otimista`
 
-A ressalva administrativa fica **encerrada para fins de rastreabilidade** com este registro em `reports/` e atualização em `tasks/current.md`.
+ScriptId: `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
 
----
+SpreadsheetId informado: `1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8`
 
-## Referências de código e deploy
+Deployment oficial: `AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw`
 
-| Campo | Valor |
-|--------|--------|
-| **Commit funcional validado (P0 UX)** | `e9e78d8` |
-| **Commit de governança no repo (HEAD na época do push)** | `f4a36e3` |
-| **DeploymentId (v19)** | `AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw` |
-| **URL oficial (Web App)** | https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec |
+URL oficial: `https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec`
 
-**scriptId Handover** (inalterado neste ciclo): `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
+## Resultado
 
----
+Status geral: FALHA
 
-## Contexto da validação
+Pre-deploy: OK.
 
-- Publicação e smoke realizados pelo **Codex** antes da criação das skills em `aios/skills/`.
-- Skills lidas para alinhamento documental: `aios/skills/handover/SKILL.md`, `aios/skills/gas-safety/SKILL.md`.
+Publicacao: versao 20 criada e aplicada ao deployment oficial.
 
----
+Smoke desktop real: FALHA na abertura.
 
-## Resultados funcionais (desktop)
+Rollback operacional: deployment oficial revertido para versao 19.
 
-| Área | Resultado |
-|------|-----------|
-| Abertura desktop | OK |
-| Performance percebida | OK |
-| Geral | OK |
-| Medicamento Falta | OK |
-| Medicamento Encomenda | OK |
-| WhatsApp | OK |
-| Checklist | OK |
-| Operador / responsabilidade | OK |
-| Histórico / Resolvidos | OK |
+POP tocado: NAO.
 
----
+## Pre-deploy
 
-## Incidentes e limitações (não bloqueantes)
+- Pasta Handover confirmada.
+- Branch `master` confirmada.
+- `.clasp.json` confirmado com scriptId do Handover.
+- Commit `9541ea6` presente no HEAD.
+- Diff do commit alterou apenas `Code.gs` e `Index.html`.
+- `Code.gs` preserva `doGet()` com `addMetaTag('viewport', 'width=device-width, initial-scale=1')`.
+- `Code.gs` nao contem `sheet.clear()`.
+- `Code.gs` preserva `ensureHeaders_`, `saveData`, `markAsPurchased`, `registerWhatsAppAttempt` e `updateChecklistItemStatus`.
+- `Index.html` contem modal de novo registro, Titulo/Urgencia para Geral, atalhos de data, rascunho de observacao do checklist e feedback otimista.
 
-### Médio — administrativo / fluxo Git–clasp
+## Publicacao
 
-- `clasp push` exigiu **`--force`**.
-- **HEAD local** estava em **`f4a36e3`** (commit de governança, sem alteração funcional em relação ao código publicado referenciado por **`e9e78d8`** para o P0).
+- `clasp status`: OK.
+- `clasp push`: OK, 3 arquivos enviados.
+- `clasp version`: criada versao 20.
+- `clasp deploy`: deployment oficial atualizado para versao 20.
+- Apos falha critica no smoke, o deployment oficial foi revertido para versao 19.
 
-**Tratamento:** registrado aqui e na task atual como ressalva administrativa; não indica regressão funcional nos testes executados.
+## Falha critica
 
-### Leve — automação
+Ao abrir a URL oficial publicada em `@20`, o Web App nao carregou a interface. A pagina retornou:
 
-- Limitação do **Playwright** com `select` / `date` dentro do **iframe** do Web App (impacto em automação, não necessariamente em uso humano no desktop).
+```text
+Error: Estrutura de cabecalho incompativel na aba "Geral". Ajuste manualmente os cabecalhos para: ID, Timestamp, Autor, Titulo, Urgencia, Descricao, Resolvido, Ultima_Acao_Por, Ultima_Acao_Em, Resolvido_Por, Data_Resolucao. (linha 874, arquivo "Code")
+```
 
----
+Impacto: o Handover fica indisponivel para usuario final se o deployment permanecer em `@20`.
 
-## Registros de teste criados (planilha / sessão Codex)
+Causa provavel: o commit adiciona colunas `Titulo` e `Urgencia` na aba `Geral`, mas a migracao defensiva atual nao consegue inserir essas colunas no meio do cabecalho existente sem considerar a estrutura atual compativel. O validador de cabecalho bloqueia antes do app abrir.
 
-Identificadores informados para rastreio:
+## Smoke desktop
 
-- `CODEX_SMOKE_HANDOVER 1778019281748 Geral`
-- `CODEX_SMOKE_HANDOVER FALTA 1778019489260`
-- `CODEX_SMOKE_HANDOVER ENCOMENDA 1778019540225`
+- Abertura: FALHA em `@20`.
+- Dashboard: NAO VALIDADO por falha na abertura.
+- Modal: NAO VALIDADO por falha na abertura.
+- Geral: NAO VALIDADO por falha na abertura.
+- Medicamento Falta: NAO VALIDADO por falha na abertura.
+- Medicamento Encomenda: NAO VALIDADO por falha na abertura.
+- Comprado otimista: NAO VALIDADO por falha na abertura.
+- WhatsApp: NAO VALIDADO por falha na abertura.
+- Checklist rascunho observacao: NAO VALIDADO por falha na abertura.
+- Historico: NAO VALIDADO por falha na abertura.
 
----
+## Registros criados
 
-## Próximos passos sugeridos (fora do escopo deste commit)
+Nenhum.
 
-1. Alinhar documentação canônica de **deploymentId** / URL em `aios/skills/handover/SKILL.md` e `AGENTS.md` quando política do time autorizar (não feito nesta rodada).
-2. Manter smoke desktop humano periódico conforme `aios/skills/smoke-handover/SKILL.md`.
+## Estado final
 
----
+O deployment oficial foi revertido para a versao 19 para preservar o uso operacional.
 
-## Metadados do relatório
+## Veredito
 
-| Campo | Valor |
-|--------|--------|
-| **Formato complementar** | `reports/validacao-handover-atual.json` |
-| **Arquivos explicitamente não alterados nesta rodada** | `Code.gs`, `Index.html`, `appsscript.json`, `.clasp.json` |
+Publicacao bloqueada. Motivo: falha critica de schema/cabecalho na aba `Geral` ao abrir o Web App na versao 20.
