@@ -1,0 +1,57 @@
+{
+  "projeto": "Handover — Drogarias Conceito",
+  "versao_publicada": 19,
+  "status_validacao": {
+    "resultado_global": "PARCIAL",
+    "motivo_parcial": "Ressalva administrativa: clasp push com --force e HEAD em commit de governança (f4a36e3); testes funcionais OK.",
+    "ressalva_administrativa_encerrada_por_registro": true
+  },
+  "commits": {
+    "funcional_validado_p0": "e9e78d8",
+    "governanca_repositorio": "f4a36e3"
+  },
+  "deployment": {
+    "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
+    "url_web_app": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec"
+  },
+  "scriptId_handover": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
+  "pop_tocado": false,
+  "agente_publicacao_validacao": "Codex",
+  "testes_funcionais": {
+    "desktop_abertura": "OK",
+    "performance_percebida": "OK",
+    "geral": "OK",
+    "medicamento_falta": "OK",
+    "medicamento_encomenda": "OK",
+    "whatsapp": "OK",
+    "checklist": "OK",
+    "operador_responsabilidade": "OK",
+    "historico_resolvidos": "OK"
+  },
+  "falhas": {
+    "criticas": [],
+    "medias": [
+      {
+        "tipo": "git_clasp",
+        "descricao": "clasp push exigiu --force; HEAD local em f4a36e3 (governança, sem mudança funcional vs e9e78d8 para o P0)."
+      }
+    ],
+    "leves": [
+      {
+        "tipo": "automacao",
+        "descricao": "Limitação Playwright com select/date no iframe do Web App."
+      }
+    ]
+  },
+  "registros_teste": [
+    "CODEX_SMOKE_HANDOVER 1778019281748 Geral",
+    "CODEX_SMOKE_HANDOVER FALTA 1778019489260",
+    "CODEX_SMOKE_HANDOVER ENCOMENDA 1778019540225"
+  ],
+  "documentacao_relacionada": [
+    "aios/skills/handover/SKILL.md",
+    "aios/skills/gas-safety/SKILL.md",
+    "tasks/current.md",
+    "reports/validacao-handover-atual.md"
+  ]
+}
