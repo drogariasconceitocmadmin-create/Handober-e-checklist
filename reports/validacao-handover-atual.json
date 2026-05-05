@@ -1,54 +1,86 @@
 {
   "projeto": "Handover - Drogarias Conceito",
-  "status_geral": "PARCIAL",
+  "status_geral": "OK",
   "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
   "branch": "master",
-  "commit_validado": "fee9b80",
+  "commit_validado": "880029c",
+  "mensagem_commit": "fix(checklist): preserve observation drafts across status updates and re-render",
   "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
   "spreadsheetId_informado": "1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8",
   "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
   "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
-  "versao_publicada": 21,
+  "versao_publicada": 22,
   "rollback_feito": false,
+  "pop_tocado": false,
   "pre_deploy": {
     "resultado": "OK",
-    "arquivos_alterados": [
-      "Code.gs",
+    "arquivos_alterados_commit": [
       "Index.html"
     ],
+    "code_gs_alterado": false,
+    "schema_alterado": false,
     "sheet_clear": false,
-    "schema_legacy_additive": true,
-    "pop_referenciado": false
+    "pop_referenciado": false,
+    "preservacoes": [
+      "checklist",
+      "filtros do checklist",
+      "observacao",
+      "Feito/N/A/Pendente",
+      "operador/responsavel",
+      "schema legado v21"
+    ]
+  },
+  "publicacao": {
+    "clasp_status": "OK",
+    "clasp_push": "OK",
+    "clasp_version": 22,
+    "clasp_deploy": "OK"
   },
   "smoke_desktop": {
     "abertura": "OK",
-    "schema_geral": "OK",
-    "geral": "OK",
-    "medicamento_falta": "OK_PARCIAL_VISUAL",
-    "medicamento_encomenda": "OK_PARCIAL_VISUAL",
-    "checklist_observacao": "FALHA",
-    "historico": "OK"
+    "dashboard": "OK",
+    "checklist_inicial_recolhido": true,
+    "console_erro_critico": false,
+    "checklist_total_itens_visiveis": 21,
+    "draft_texto": "CODEX_V22 RASCUNHO NAO PODE SUMIR",
+    "draft_apos_feito": "OK",
+    "draft_apos_na": "OK",
+    "draft_apos_pendente": "OK",
+    "draft_apos_filtros": "OK",
+    "observacao_persistiu_apos_reload": true,
+    "filtros": {
+      "todos": "OK",
+      "pendentes": "OK",
+      "feitos": "OK",
+      "feitos_hoje": "OK"
+    },
+    "regressao_minima": {
+      "modal_novo_registro": "OK",
+      "falta_sem_preco": "OK",
+      "encomenda_com_preco": "OK",
+      "historico_resolvidos": "OK"
+    }
   },
-  "registros_criados": [
-    "CODEX_V21 Geral - schema"
+  "registros_criados": [],
+  "alteracoes_checklist": [
+    {
+      "item_id": "cdc719f4-51ef-4dd1-a15d-08e796b527d7",
+      "acao": "observacao salva",
+      "valor": "CODEX_V22 RASCUNHO NAO PODE SUMIR"
+    },
+    {
+      "item_id": "0fc4e01a-9022-497c-b276-21eba9665842",
+      "acao": "marcado como Feito e depois voltou para Pendente"
+    },
+    {
+      "item_id": "06cbb6d3-422d-4368-a2cd-7ec2ddeecc00",
+      "acao": "marcado como N/A"
+    }
   ],
   "falhas": {
     "criticas": [],
-    "medias": [
-      {
-        "area": "checklist",
-        "mensagem": "Rascunho digitado na observacao do item A sumiu ao marcar item B como Feito.",
-        "impacto": "Usuario pode perder texto nao salvo durante atualizacao do checklist.",
-        "arquivo_funcao_provavel": "Index.html / captureObservationDraftsFromDom_ / renderChecklistSection"
-      }
-    ],
-    "leves": [
-      {
-        "area": "smoke",
-        "mensagem": "Falta e Encomenda validadas visualmente sem salvar registros novos."
-      }
-    ]
+    "medias": [],
+    "leves": []
   },
-  "pop_tocado": false,
-  "veredito": "Publicado com ressalvas. Proxima correcao: preservar rascunho de observacao do checklist durante re-render/atualizacao otimista de outro item."
+  "veredito": "Handover v22 publicado e aprovado. Bug do rascunho de observacao do checklist corrigido. POP nao foi tocado."
 }

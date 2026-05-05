@@ -1,4 +1,4 @@
-# Validacao Handover - commit fee9b80
+# Validacao Handover - commit 880029c
 
 Projeto: Handover - Drogarias Conceito
 
@@ -6,7 +6,7 @@ Pasta: `C:\Users\Marco\Desktop\Sis Drogaria\Handover`
 
 Branch: `master`
 
-Commit validado: `fee9b80 - fix(handover): tolerate legacy Geral/Arquivo headers without blocking Web App`
+Commit validado: `880029c - fix(checklist): preserve observation drafts across status updates and re-render`
 
 ScriptId: `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
 
@@ -18,9 +18,9 @@ URL oficial: `https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklp
 
 ## Resultado
 
-Status geral: PARCIAL
+Status geral: OK
 
-Versao publicada: 21.
+Versao publicada: 22.
 
 Rollback feito: NAO.
 
@@ -31,40 +31,36 @@ POP tocado: NAO.
 - Pasta Handover confirmada.
 - Branch `master` confirmada.
 - `.clasp.json` confirmado com scriptId do Handover.
-- Commit `fee9b80` presente no HEAD.
-- Diff do commit alterou `Code.gs` e `Index.html`.
+- Commit `880029c` presente no HEAD.
+- Commit alterou somente `Index.html`.
+- `Code.gs` nao foi alterado no commit.
+- Nao houve mudanca de schema.
 - Nao ha `sheet.clear()`.
-- `ensureHeadersLegacyAdditive_` nao reordena colunas existentes.
-- `ensureHeadersLegacyAdditive_` nao sobrescreve cabecalhos existentes.
-- Cabecalhos faltantes sao adicionados no final.
-- Aliases com/sem acento sao tratados por chave canonica.
-- Geral/Arquivo usam leitura/escrita por mapa de cabecalho real.
-- Fallbacks de Geral confirmados no codigo: `Titulo || Assunto || Descricao resumida || Solicitação geral`; urgencia vazia vira `Normal`.
-- Mantidos: modal, Geral com titulo/urgencia, operador atual, atalhos de data, rascunho checklist, comprado otimista, Falta sem preco, Encomenda com preco e `doGet` com viewport.
+- Patch preserva checklist, filtros, observacao, estados Feito/N/A/Pendente e operador/responsavel.
+- v21 de schema legado permanece preservada, sem alteracao no backend.
+- POP nao apareceu em busca por scriptId/deploymentId proibido.
 
 ## Publicacao
 
 - `clasp status`: OK.
 - `clasp push`: OK, 3 arquivos enviados.
-- `clasp version`: criada versao 21.
-- `clasp deploy`: deployment oficial atualizado para versao 21.
+- `clasp version`: criada versao 22.
+- `clasp deploy`: deployment oficial atualizado para versao 22.
 
 ## Smoke desktop real
 
-- Abertura: OK. Web App abriu sem erro de cabecalho.
-- Dashboard: OK. Cards carregaram.
-- Checklist inicial: OK. Iniciou recolhido.
+- Abertura: OK. Web App abriu sem Access Denied.
+- Dashboard: OK. Carregou com cards e checklist recolhido.
 - Console: OK. Sem erro critico observado.
-- Schema Geral: OK. Aba Geral nao bloqueou abertura; registros antigos continuaram visiveis; novo Geral salvou com titulo/urgencia.
-- Geral: OK. Criado `CODEX_V21 Geral - schema`; card apareceu rapido e exibiu operador/urgencia.
-- Medicamento Falta: OK parcial visual. Campo Preco de venda ficou oculto; nao foi salvo novo registro de Falta nesta rodada.
-- Medicamento Encomenda: OK parcial visual. Campo Preco apareceu e atalhos de data preencheram o campo; nao foi salvo novo registro de Encomenda nesta rodada.
-- Checklist observacao: FALHA. Texto digitado em observacao do item A sumiu ao marcar item B como Feito.
-- Historico/Resolvidos: OK. Carregou sob demanda sem erro de cabecalho.
+- Checklist rascunho: OK. Texto `CODEX_V22 RASCUNHO NAO PODE SUMIR` permaneceu apos marcar outro item como Feito, marcar outro como N/A, voltar um item para Pendente e trocar filtros.
+- Persistencia da observacao: OK. Observacao salva permaneceu apos recarregar a pagina.
+- Filtros checklist: OK. Todos, Pendentes, Feitos e Feitos hoje trocaram sem erro e com contagens coerentes.
+- Regressao minima: OK. Modal de novo registro abriu; Falta manteve Preco de venda oculto; Encomenda manteve Preco de venda visivel; Historico/Resolvidos carregou sob demanda.
 
-## Registros criados
+## Dados de teste
 
-- `CODEX_V21 Geral - schema`
+- Registros novos criados: nenhum.
+- Alteracoes operacionais feitas no checklist: observacao salva no item de checklist `cdc719f4-51ef-4dd1-a15d-08e796b527d7`; item `0fc4e01a-9022-497c-b276-21eba9665842` marcado como Feito e depois voltou para Pendente; item `06cbb6d3-422d-4368-a2cd-7ec2ddeecc00` marcado como N/A.
 
 ## Falhas
 
@@ -74,12 +70,12 @@ POP tocado: NAO.
 
 ### Medias
 
-- Checklist observacao: rascunho digitado em um item nao foi preservado apos atualizar outro item do checklist.
+- Nenhuma.
 
 ### Leves
 
-- Medicamento Falta e Encomenda foram validados visualmente, mas nao foram salvos nesta rodada para evitar registros extras apos identificar a falha media do checklist.
+- Nenhuma.
 
 ## Veredito
 
-Publicado com ressalvas. Proxima correcao: preservar rascunho de observacao do checklist durante re-render/atualizacao otimista de outro item.
+Handover v22 publicado e aprovado. Bug do rascunho de observacao do checklist corrigido. POP nao foi tocado.
