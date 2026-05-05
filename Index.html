@@ -4,19 +4,21 @@
     <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitacoes Drogaria</title>
+    <title>Handover - Drogarias Conceito</title>
     <style>
       :root {
-        --bg: #f4f6f8;
+        --bg: #f3f5f8;
         --card: #ffffff;
+        --border: #d5d9e0;
         --text: #1f2937;
         --muted: #6b7280;
-        --border: #d1d5db;
         --primary: #2563eb;
         --primary-dark: #1d4ed8;
         --success: #15803d;
-        --danger-bg: #fecaca;
-        --danger-text: #7f1d1d;
+        --warning: #b45309;
+        --danger: #b91c1c;
+        --danger-bg: #fee2e2;
+        --chip: #eef2ff;
       }
 
       * {
@@ -28,21 +30,22 @@
         background: var(--bg);
         color: var(--text);
         font-family: Arial, Helvetica, sans-serif;
+        overflow-x: hidden;
       }
 
-      .app {
-        max-width: 1180px;
+      .page {
+        max-width: 1120px;
         margin: 0 auto;
-        padding: 24px;
+        padding: 16px;
       }
 
       .header {
-        margin-bottom: 20px;
+        margin-bottom: 12px;
       }
 
       .header h1 {
-        margin: 0 0 6px;
-        font-size: 28px;
+        font-size: 24px;
+        margin: 0 0 4px;
       }
 
       .header p {
@@ -50,75 +53,94 @@
         color: var(--muted);
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: minmax(280px, 380px) 1fr;
-        gap: 20px;
-        align-items: start;
-      }
-
       .card {
         background: var(--card);
         border: 1px solid var(--border);
         border-radius: 12px;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-        padding: 18px;
+        padding: 12px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
       }
 
-      .card h2 {
-        margin: 0 0 14px;
-        font-size: 20px;
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 10px;
       }
 
-      label {
-        display: block;
-        margin-bottom: 6px;
-        font-weight: 700;
-      }
-
-      input,
-      select,
-      textarea {
-        width: 100%;
+      .summary-box {
+        background: #fff;
         border: 1px solid var(--border);
-        border-radius: 8px;
-        font: inherit;
+        border-radius: 10px;
         padding: 10px;
       }
 
-      textarea {
-        min-height: 110px;
-        resize: vertical;
+      .summary-box .label {
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
       }
 
-      .field {
-        margin-bottom: 14px;
+      .summary-box .value {
+        font-size: 22px;
+        font-weight: 700;
+        margin-top: 4px;
       }
 
-      .checkbox {
+      .summary-box .sub {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .toolbar {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
         align-items: center;
+        justify-content: space-between;
+        margin-bottom: 10px;
       }
 
-      .checkbox input {
-        width: auto;
-      }
-
-      .actions {
+      .filter-group {
         display: flex;
-        gap: 8px;
         flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .filter-button {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 8px 12px;
+      }
+
+      .filter-button.active {
+        background: var(--chip);
+        border-color: #99a5d8;
+        color: #1e3a8a;
+      }
+
+      .toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
       }
 
       button {
         border: 0;
         border-radius: 8px;
         background: var(--primary);
-        color: white;
+        color: #fff;
         cursor: pointer;
+        font-size: 13px;
         font-weight: 700;
-        padding: 10px 12px;
+        padding: 9px 11px;
       }
 
       button:hover {
@@ -129,6 +151,16 @@
         background: var(--success);
       }
 
+      button.warning {
+        background: #f59e0b;
+        color: #1f2937;
+      }
+
+      button.light {
+        background: #e5e7eb;
+        color: var(--text);
+      }
+
       button.whatsapp {
         background: #16a34a;
       }
@@ -137,505 +169,1203 @@
         background: #15803d;
       }
 
-      button.light {
-        background: #e5e7eb;
-        color: var(--text);
-      }
-
       button:disabled {
+        opacity: 0.6;
         cursor: not-allowed;
-        opacity: 0.65;
       }
 
       .status {
-        min-height: 22px;
-        margin-top: 12px;
         color: var(--muted);
-        font-weight: 700;
+        font-size: 12px;
+        min-height: 18px;
+        margin-top: 8px;
       }
 
       .status.error {
-        color: var(--danger-text);
+        color: var(--danger);
       }
 
-      .table-wrap {
-        overflow-x: auto;
+      .queue-title {
+        margin: 0 0 6px;
+        font-size: 18px;
       }
 
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        min-width: 860px;
-      }
-
-      th,
-      td {
-        border-bottom: 1px solid var(--border);
-        padding: 10px;
-        text-align: left;
-        vertical-align: top;
-      }
-
-      th {
+      .queue-subtitle {
+        margin: 0 0 8px;
         color: var(--muted);
         font-size: 12px;
-        text-transform: uppercase;
       }
 
-      tr.overdue {
-        background: var(--danger-bg);
-        color: var(--danger-text);
-        font-weight: 700;
+      .queue-list {
+        display: grid;
+        gap: 8px;
       }
 
-      .pill {
+      .queue-card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+        padding: 10px;
+      }
+
+      .queue-card.overdue {
+        border-color: #ef4444;
+        background: #fef2f2;
+      }
+
+      .queue-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: flex-start;
+        margin-bottom: 6px;
+      }
+
+      .badge {
         display: inline-block;
         border-radius: 999px;
-        background: #eef2ff;
-        color: #3730a3;
-        font-size: 12px;
+        background: var(--chip);
+        color: #1e3a8a;
+        font-size: 11px;
         font-weight: 700;
         padding: 4px 8px;
       }
 
-      .empty {
-        color: var(--muted);
-        padding: 18px 0 0;
+      .badge.status-pendente {
+        background: #fee2e2;
+        color: #991b1b;
       }
 
-      .checklist-section {
-        margin-bottom: 16px;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: #f9fafb;
-        padding: 12px;
+      .badge.status-comprado {
+        background: #fef3c7;
+        color: #92400e;
       }
 
-      .checklist-header {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .checklist-header h3 {
-        margin: 0;
-        font-size: 18px;
-      }
-
-      .checklist-summary {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin: 10px 0;
-      }
-
-      .summary-chip {
-        border-radius: 999px;
-        background: #eef2ff;
-        color: #1e3a8a;
-        font-size: 12px;
-        font-weight: 700;
-        padding: 6px 10px;
-      }
-
-      .summary-chip.percentual {
+      .badge.status-entregue,
+      .badge.status-feito {
         background: #dcfce7;
         color: #166534;
       }
 
-      .checklist-group {
-        margin-top: 12px;
+      .badge.status-na {
+        background: #e5e7eb;
+        color: #374151;
       }
 
-      .checklist-group h4 {
-        margin: 0 0 8px;
+      .queue-time {
         color: var(--muted);
-        font-size: 13px;
-        text-transform: uppercase;
+        font-size: 11px;
       }
 
-      .checklist-item {
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: #fff;
-        margin-bottom: 8px;
-        padding: 10px;
-      }
-
-      .checklist-item.late {
-        border-color: #ef4444;
-        background: #fee2e2;
-      }
-
-      .checklist-item-title {
+      .queue-title-main {
+        font-size: 15px;
         font-weight: 700;
       }
 
-      .checklist-item-description {
+      .queue-desc {
         color: var(--muted);
-        font-size: 13px;
-        margin-top: 3px;
+        font-size: 12px;
+        margin-top: 2px;
       }
 
-      .checklist-item-meta {
+      .queue-meta {
         color: var(--muted);
         font-size: 12px;
         margin-top: 6px;
       }
 
-      .checklist-item-actions {
+      .queue-actions {
         display: flex;
-        gap: 6px;
         flex-wrap: wrap;
-        margin-top: 8px;
-      }
-
-      .checklist-item-actions button {
-        font-size: 12px;
-        margin: 0;
-        padding: 8px 10px;
-      }
-
-      .checklist-observation {
-        display: flex;
         gap: 6px;
         margin-top: 8px;
       }
 
-      .checklist-observation input {
+      .queue-actions button {
+        font-size: 12px;
         margin: 0;
+        padding: 7px 10px;
       }
 
-      .checklist-observation button {
-        margin: 0;
+      .section-title {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .checklist-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .checklist-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+
+      .checklist-chip {
+        border-radius: 999px;
+        background: var(--chip);
+        color: #1e3a8a;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 9px;
+      }
+
+      .checklist-chip.alert {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+
+      .checklist-hint {
+        color: var(--muted);
         font-size: 12px;
+        margin: 4px 0 8px;
+      }
+
+      .checklist-categories {
+        display: grid;
+        gap: 8px;
+      }
+
+      .checklist-category {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: #fff;
+      }
+
+      .checklist-category-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        width: 100%;
+        border: 0;
+        border-radius: 10px 10px 0 0;
+        background: #f8fafc;
+        color: var(--text);
+        font-size: 12px;
+        text-align: left;
         padding: 8px 10px;
+      }
+
+      .checklist-category-head:hover {
+        background: #f1f5f9;
+      }
+
+      .checklist-category-meta {
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .checklist-items {
+        padding: 8px;
+        display: grid;
+        gap: 7px;
+      }
+
+      .check-item {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        padding: 8px;
+      }
+
+      .check-item.late {
+        border-color: #ef4444;
+        background: #fef2f2;
+      }
+
+      .check-item-title {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .check-item-desc {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+      }
+
+      .check-item-meta {
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 5px;
+      }
+
+      .check-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 6px;
+      }
+
+      .check-actions button {
+        font-size: 11px;
+        padding: 6px 8px;
+      }
+
+      .check-actions button.active {
+        outline: 2px solid rgba(37, 99, 235, 0.35);
+      }
+
+      .obs-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        gap: 8px;
+      }
+
+      .obs-flag {
+        color: #0f766e;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .obs-panel {
+        display: flex;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .obs-panel input {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font: inherit;
+        font-size: 12px;
+        padding: 8px;
+        width: 100%;
+      }
+
+      .obs-panel button {
+        font-size: 12px;
+      }
+
+      .form-panel h2 {
+        margin: 0 0 8px;
+        font-size: 18px;
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font: inherit;
+        padding: 9px;
+        width: 100%;
+      }
+
+      .field textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .checkbox-row input {
+        width: auto;
+      }
+
+      .form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .empty-box {
+        color: var(--muted);
+        border: 1px dashed var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 10px;
       }
 
       @media (max-width: 900px) {
-        .grid {
-          grid-template-columns: 1fr;
+        .summary-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .toolbar-actions {
+          justify-content: flex-end;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .page {
+          padding: 10px;
+        }
+
+        .summary-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .queue-head {
+          flex-direction: column;
+        }
+
+        .queue-actions button,
+        .check-actions button,
+        .form-actions button,
+        .toolbar-actions button {
+          flex: 1 1 calc(50% - 6px);
+        }
+
+        .obs-panel {
+          flex-direction: column;
         }
       }
     </style>
   </head>
   <body>
-    <main class="app">
+    <main class="page">
       <header class="header">
-        <h1>Solicitacoes Drogaria</h1>
-        <p>Cadastre solicitacoes e acompanhe pendencias em tempo real.</p>
+        <h1>Handover - Drogarias Conceito</h1>
+        <p>Painel operacional para turno, pendências e medicamentos.</p>
       </header>
 
-      <section class="grid">
-        <div class="card">
-          <h2>Novo registro</h2>
-          <form id="request-form">
+      <section id="operation-summary" class="summary-grid"></section>
+
+      <section class="toolbar card">
+        <div class="filter-group" id="queue-filters">
+          <button type="button" class="filter-button active" data-filter="todos" onclick="setQueueFilter('todos')">
+            Todos
+          </button>
+          <button type="button" class="filter-button" data-filter="pendentes" onclick="setQueueFilter('pendentes')">
+            Pendentes
+          </button>
+          <button type="button" class="filter-button" data-filter="comprados" onclick="setQueueFilter('comprados')">
+            Comprados
+          </button>
+          <button type="button" class="filter-button" data-filter="entregues" onclick="setQueueFilter('entregues')">
+            Entregues
+          </button>
+          <button
+            type="button"
+            class="filter-button"
+            data-filter="resolvidos_parcialmente"
+            onclick="setQueueFilter('resolvidos_parcialmente')"
+          >
+            Resolvidos parcialmente
+          </button>
+          <button
+            type="button"
+            class="filter-button"
+            data-filter="comprados_sem_aviso"
+            onclick="setQueueFilter('comprados_sem_aviso')"
+          >
+            Comprados sem aviso
+          </button>
+          <button
+            type="button"
+            class="filter-button"
+            data-filter="vencidos_hoje"
+            onclick="setQueueFilter('vencidos_hoje')"
+          >
+            Vencidos/Hoje
+          </button>
+        </div>
+        <div class="toolbar-actions">
+          <button id="toggle-form-btn" type="button" class="light" onclick="toggleFormPanel()">Novo registro</button>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top: 10px;">
+        <h2 class="queue-title">Pendências operacionais</h2>
+        <p id="queue-subtitle" class="queue-subtitle"></p>
+        <div id="queue-list" class="queue-list"></div>
+        <div id="queue-empty" class="empty-box hidden">Nenhuma pendência para o filtro selecionado.</div>
+        <div id="queue-status" class="status" aria-live="polite"></div>
+      </section>
+
+      <section class="card" style="margin-top: 10px;">
+        <div class="checklist-top">
+          <h2 class="section-title">Checklist do Turno</h2>
+          <button id="checklist-toggle-btn" type="button" class="light" onclick="toggleChecklistPanel()">
+            Abrir checklist
+          </button>
+        </div>
+
+        <div id="checklist-summary" class="checklist-summary"></div>
+        <p id="checklist-generate-hint" class="checklist-hint"></p>
+
+        <div class="toolbar-actions" style="margin-bottom: 8px;">
+          <input
+            id="checklist-responsavel"
+            type="text"
+            placeholder="Responsável (opcional)"
+            style="border:1px solid var(--border); border-radius:8px; font:inherit; padding:8px; flex:1 1 220px;"
+          >
+          <button id="checklist-generate-btn" type="button" class="light" onclick="refreshChecklistToday()">
+            Atualizar visualização
+          </button>
+        </div>
+
+        <div id="checklist-content" class="hidden">
+          <div id="checklist-categories" class="checklist-categories"></div>
+        </div>
+        <div id="checklist-status" class="status" aria-live="polite"></div>
+      </section>
+
+      <section id="form-panel" class="card hidden" style="margin-top: 10px;">
+        <h2>Novo registro</h2>
+        <form id="request-form" class="form-grid">
+          <div class="field">
+            <label for="category">Categoria</label>
+            <select id="category" name="category">
+              <option value="Geral">Geral</option>
+              <option value="Medicamentos">Medicamentos</option>
+            </select>
+          </div>
+
+          <div id="general-fields">
             <div class="field">
-              <label for="category">Categoria</label>
-              <select id="category" name="category">
-                <option value="Geral">Geral</option>
-                <option value="Medicamentos">Medicamentos</option>
+              <label for="autor">Autor</label>
+              <input id="autor" name="autor" autocomplete="name">
+            </div>
+            <div class="field">
+              <label for="descricao">Descrição</label>
+              <textarea id="descricao" name="descricao"></textarea>
+            </div>
+          </div>
+
+          <div id="medicine-fields" class="hidden">
+            <div class="field">
+              <label for="tipo">Tipo</label>
+              <select id="tipo" name="tipo">
+                <option value="Encomenda">Encomenda</option>
+                <option value="Falta">Falta</option>
               </select>
             </div>
 
-            <div id="general-fields">
-              <div class="field">
-                <label for="autor">Autor</label>
-                <input id="autor" name="autor" autocomplete="name">
-              </div>
-
-              <div class="field">
-                <label for="descricao">Descricao</label>
-                <textarea id="descricao" name="descricao"></textarea>
-              </div>
+            <div class="field">
+              <label for="medicamento">Medicamento</label>
+              <input id="medicamento" name="medicamento">
             </div>
 
-            <div id="medicine-fields" hidden>
-              <div class="field">
-                <label for="tipo">Tipo</label>
-                <select id="tipo" name="tipo">
-                  <option value="Encomenda">Encomenda</option>
-                  <option value="Falta">Falta</option>
-                </select>
-              </div>
-
-              <div class="field">
-                <label for="medicamento">Medicamento</label>
-                <input id="medicamento" name="medicamento">
-              </div>
-
-              <div class="field">
-                <label for="precoVenda">Preço de venda</label>
-                <input
-                  id="precoVenda"
-                  name="precoVenda"
-                  type="text"
-                  inputmode="decimal"
-                  placeholder="R$ 0,00"
-                >
-              </div>
-
-              <div class="field checkbox">
-                <input id="prePago" name="prePago" type="checkbox">
-                <label for="prePago">Pre-pago</label>
-              </div>
-
-              <div class="field">
-                <label for="cliente">Cliente</label>
-                <input id="cliente" name="cliente">
-              </div>
-
-              <div class="field">
-                <label for="telefone">Telefone</label>
-                <input id="telefone" name="telefone" placeholder="(11) 91234-5678">
-              </div>
-
-              <div class="field">
-                <label for="atendente">Atendente</label>
-                <input id="atendente" name="atendente">
-              </div>
-
-              <div class="field">
-                <label for="previsaoEntrega">Previsao de entrega</label>
-                <input id="previsaoEntrega" name="previsaoEntrega" type="date">
-              </div>
+            <div class="field">
+              <label for="precoVenda">Preço de venda</label>
+              <input id="precoVenda" name="precoVenda" type="text" inputmode="decimal" placeholder="R$ 0,00">
             </div>
 
-            <div class="actions">
-              <button id="save-button" type="submit">Salvar</button>
-              <button class="light" type="reset">Limpar</button>
+            <div class="checkbox-row field">
+              <input id="prePago" name="prePago" type="checkbox">
+              <label for="prePago" style="margin:0;">Pré-pago</label>
             </div>
-            <div id="form-status" class="status" aria-live="polite"></div>
-          </form>
-        </div>
 
-        <div class="card">
-          <h2>Dashboard de pendencias</h2>
-
-          <section class="checklist-section">
-            <div class="checklist-header">
-              <h3>Checklist do Turno</h3>
-              <button
-                id="generate-checklist-button"
-                class="light"
-                type="button"
-                onclick="generateChecklistToday()"
-              >
-                Gerar checklist de hoje
-              </button>
+            <div class="field">
+              <label for="cliente">Cliente</label>
+              <input id="cliente" name="cliente">
             </div>
-            <div id="checklist-summary" class="checklist-summary"></div>
-            <div id="checklist-container"></div>
-            <div id="checklist-status" class="status" aria-live="polite"></div>
-          </section>
 
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Origem</th>
-                  <th>Data</th>
-                  <th>Descricao / Medicamento</th>
-                  <th>Responsavel / Cliente</th>
-                  <th>Previsao</th>
-                  <th>Status</th>
-                  <th>Acoes</th>
-                </tr>
-              </thead>
-              <tbody id="dashboard-body"></tbody>
-            </table>
+            <div class="field">
+              <label for="telefone">Telefone</label>
+              <input id="telefone" name="telefone" placeholder="(11) 91234-5678">
+            </div>
+
+            <div class="field">
+              <label for="atendente">Atendente</label>
+              <input id="atendente" name="atendente">
+            </div>
+
+            <div class="field">
+              <label for="previsaoEntrega">Previsão de entrega</label>
+              <input id="previsaoEntrega" name="previsaoEntrega" type="date">
+            </div>
           </div>
-          <div id="empty-state" class="empty" hidden>Nenhuma pendencia aberta.</div>
-          <div id="dashboard-status" class="status" aria-live="polite"></div>
-        </div>
+
+          <div class="form-actions">
+            <button id="save-button" type="submit">Salvar</button>
+            <button type="reset" class="light">Limpar</button>
+          </div>
+          <div id="form-status" class="status" aria-live="polite"></div>
+        </form>
       </section>
     </main>
 
     <script>
-      let dashboardData = parseInitialDataB64('<?= initialDataB64 ?>');
+      const QUEUE_FILTERS = [
+        'todos',
+        'pendentes',
+        'comprados',
+        'entregues',
+        'resolvidos_parcialmente',
+        'comprados_sem_aviso',
+        'vencidos_hoje',
+      ];
 
-      const form = document.getElementById('request-form');
-      const category = document.getElementById('category');
+      let dashboardData = parseInitialDataB64('<?= initialDataB64 ?>');
+      let activeQueueFilter = 'todos';
+      let isChecklistExpanded = false;
+      const openChecklistCategories = new Set();
+      const openChecklistObservations = new Set();
+
+      const formPanel = document.getElementById('form-panel');
+      const toggleFormBtn = document.getElementById('toggle-form-btn');
+      const requestForm = document.getElementById('request-form');
+      const categorySelect = document.getElementById('category');
       const generalFields = document.getElementById('general-fields');
       const medicineFields = document.getElementById('medicine-fields');
       const formStatus = document.getElementById('form-status');
-      const dashboardStatus = document.getElementById('dashboard-status');
-      const dashboardBody = document.getElementById('dashboard-body');
-      const emptyState = document.getElementById('empty-state');
       const saveButton = document.getElementById('save-button');
-      const checklistContainer = document.getElementById('checklist-container');
-      const checklistSummary = document.getElementById('checklist-summary');
-      const checklistStatus = document.getElementById('checklist-status');
-      const generateChecklistButton = document.getElementById('generate-checklist-button');
 
-      category.addEventListener('change', updateVisibleFields);
-      form.addEventListener('submit', handleSubmit);
-      form.addEventListener('reset', function () {
+      const summaryContainer = document.getElementById('operation-summary');
+      const queueList = document.getElementById('queue-list');
+      const queueEmpty = document.getElementById('queue-empty');
+      const queueStatus = document.getElementById('queue-status');
+      const queueSubtitle = document.getElementById('queue-subtitle');
+
+      const checklistToggleBtn = document.getElementById('checklist-toggle-btn');
+      const checklistSummary = document.getElementById('checklist-summary');
+      const checklistHint = document.getElementById('checklist-generate-hint');
+      const checklistContent = document.getElementById('checklist-content');
+      const checklistCategories = document.getElementById('checklist-categories');
+      const checklistStatus = document.getElementById('checklist-status');
+      const checklistGenerateBtn = document.getElementById('checklist-generate-btn');
+      const checklistResponsavel = document.getElementById('checklist-responsavel');
+
+      categorySelect.addEventListener('change', updateVisibleFields);
+      requestForm.addEventListener('submit', handleSubmit);
+      requestForm.addEventListener('reset', function () {
         setTimeout(updateVisibleFields, 0);
       });
 
-      renderDashboard();
+      renderAll();
 
-      function updateVisibleFields() {
-        const isMedicine = category.value === 'Medicamentos';
-        generalFields.hidden = isMedicine;
-        medicineFields.hidden = !isMedicine;
-        clearStatus(formStatus);
+      function renderAll() {
+        renderSummary();
+        renderQueue();
+        renderChecklistSection();
       }
 
-      function handleSubmit(event) {
-        event.preventDefault();
-        clearStatus(formStatus);
+      function renderSummary() {
+        const allQueueItems = buildWorkQueueItems(dashboardData);
+        const pendingQueue = allQueueItems.filter(function (item) {
+          return item.statusKey === 'pendente';
+        });
+        const medicationPending = allQueueItems.filter(function (item) {
+          return item.type === 'medicamento' && item.statusKey === 'pendente';
+        });
+        const boughtWithoutWhatsapp = allQueueItems.filter(function (item) {
+          return item.type === 'medicamento' && item.statusKey === 'comprado' && item.whatsappNotSent;
+        });
+        const checklist = dashboardData.checklistTurno;
+        const checklistSummaryData = checklist.summary || {
+          totalItens: 0,
+          itensFeitos: 0,
+          itensPendentes: 0,
+          percentualConcluido: 0,
+        };
 
-        const tab = category.value;
-        const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
+        summaryContainer.innerHTML = [
+          buildSummaryBox_('Pendências', pendingQueue.length, 'Fila de trabalho ativa'),
+          buildSummaryBox_('Medicamentos pendentes', medicationPending.length, 'Aguardando ação'),
+          buildSummaryBox_('Comprados sem aviso', boughtWithoutWhatsapp.length, 'Prioridade de WhatsApp'),
+          buildSummaryBox_(
+            'Checklist manhã',
+            checklistSummaryData.percentualConcluido + '%',
+            checklistSummaryData.itensPendentes + ' pendente(s)'
+          ),
+        ].join('');
+      }
 
-        if (tab === 'Medicamentos') {
-          const priceResult = normalizePriceInput_(payload.precoVenda);
-          if (priceResult.error) {
-            setStatus(formStatus, priceResult.error, true);
-            return;
-          }
-          payload.precoVenda = priceResult.value;
-        }
+      function buildSummaryBox_(label, value, sub) {
+        return (
+          '<div class="summary-box">' +
+          '<div class="label">' +
+          escapeHtml(label) +
+          '</div>' +
+          '<div class="value">' +
+          escapeHtml(value) +
+          '</div>' +
+          '<div class="sub">' +
+          escapeHtml(sub) +
+          '</div>' +
+          '</div>'
+        );
+      }
 
-        const validationError = validatePayload(tab, payload);
+      function renderQueue() {
+        const queueItems = filterQueueItems_(buildWorkQueueItems(dashboardData));
+        queueList.innerHTML = '';
+        queueEmpty.classList.toggle('hidden', queueItems.length !== 0);
+        queueSubtitle.textContent =
+          'Filtro atual: ' + humanizeQueueFilter_(activeQueueFilter) + ' (' + queueItems.length + ')';
 
-        if (validationError) {
-          setStatus(formStatus, validationError, true);
+        if (queueItems.length === 0) {
           return;
         }
 
-        setLoading(true);
-        setStatus(formStatus, 'Salvando...');
-
-        google.script.run
-          .withSuccessHandler(function (response) {
-            dashboardData = normalizeData(response.items);
-            renderDashboard();
-            form.reset();
-            updateVisibleFields();
-            setStatus(formStatus, 'Registro salvo com sucesso.');
-            setLoading(false);
-          })
-          .withFailureHandler(function (error) {
-            setStatus(formStatus, getErrorMessage(error), true);
-            setLoading(false);
-          })
-          .saveData(tab, payload);
+        queueItems.forEach(function (item) {
+          const card = document.createElement('article');
+          card.className = 'queue-card' + (item.isOverdue ? ' overdue' : '');
+          card.innerHTML = buildQueueCardHtml_(item);
+          queueList.appendChild(card);
+        });
       }
 
-      function getGeneralPayload() {
-        return {
-          autor: document.getElementById('autor').value,
-          descricao: document.getElementById('descricao').value,
-        };
-      }
+      function buildQueueCardHtml_(item) {
+        const statusClass = item.statusKey ? ' status-' + item.statusKey : '';
+        const badges = [
+          '<span class="badge">' + escapeHtml(item.originLabel) + '</span>',
+          '<span class="badge' + statusClass + '">' + escapeHtml(item.statusLabel) + '</span>',
+        ];
 
-      function getMedicinePayload() {
-        return {
-          tipo: document.getElementById('tipo').value,
-          medicamento: document.getElementById('medicamento').value,
-          precoVenda: document.getElementById('precoVenda').value,
-          prePago: document.getElementById('prePago').checked,
-          cliente: document.getElementById('cliente').value,
-          telefone: document.getElementById('telefone').value,
-          atendente: document.getElementById('atendente').value,
-          previsaoEntrega: document.getElementById('previsaoEntrega').value,
-        };
-      }
-
-      function validatePayload(tab, payload) {
-        if (tab === 'Geral') {
-          if (!payload.autor.trim()) return 'Informe o autor.';
-          if (!payload.descricao.trim()) return 'Informe a descricao.';
+        if (item.isOverdue) {
+          badges.push('<span class="badge status-pendente">Atrasado/Hoje</span>');
         }
 
-        if (tab === 'Medicamentos') {
-          if (!payload.medicamento.trim()) return 'Informe o medicamento.';
-          if (!payload.cliente.trim()) return 'Informe o cliente.';
-          if (!payload.telefone.trim()) return 'Informe o telefone do cliente.';
-          if (!payload.atendente.trim()) return 'Informe o atendente.';
-          if (!payload.previsaoEntrega) return 'Informe a previsao de entrega.';
-        }
+        const metaLines = [
+          item.person ? 'Responsável/Cliente: ' + item.person : '',
+          item.forecast ? 'Previsão: ' + item.forecast : '',
+          item.price ? 'Preço de venda: ' + item.price : '',
+          item.extraMeta || '',
+        ].filter(Boolean);
 
-        return '';
+        return (
+          '<div class="queue-head">' +
+          '<div>' +
+          badges.join(' ') +
+          '</div>' +
+          '<div class="queue-time">' +
+          escapeHtml(item.timeLabel) +
+          '</div>' +
+          '</div>' +
+          '<div class="queue-title-main">' +
+          escapeHtml(item.title) +
+          '</div>' +
+          '<div class="queue-desc">' +
+          escapeHtml(item.description) +
+          '</div>' +
+          '<div class="queue-meta">' +
+          escapeHtml(metaLines.join(' | ')) +
+          '</div>' +
+          '<div class="queue-meta">Ações</div>' +
+          '<div class="queue-actions">' +
+          item.actions
+            .map(function (action) {
+              return (
+                '<button ' +
+                'data-queue-action="1" ' +
+                'class="' +
+                escapeHtml(action.className || '') +
+                '" ' +
+                'type="button" ' +
+                'onclick="' +
+                escapeAttribute(action.handler) +
+                "('" +
+                escapeAttribute(item.id) +
+                "')\">" +
+                escapeHtml(action.label) +
+                '</button>'
+              );
+            })
+            .join('') +
+          '</div>'
+        );
       }
 
-      function renderDashboard() {
-        renderChecklist();
-
-        const rows = [
-          ...dashboardData.geral.map(mapGeneralRow),
-          ...dashboardData.medicamentos.map(mapMedicineRow),
-        ].sort(function (a, b) {
-          return String(a.timestamp).localeCompare(String(b.timestamp));
+      function buildWorkQueueItems(data) {
+        const generalItems = (data.geral || []).map(function (item) {
+          return {
+            id: item.ID,
+            type: 'geral',
+            originLabel: 'Solicitações',
+            statusLabel: 'Pendente',
+            statusKey: 'pendente',
+            title: item.Descricao || 'Solicitação sem descrição',
+            description: 'Autor: ' + (item.Autor || '-'),
+            person: item.Autor || '-',
+            forecast: '',
+            price: '',
+            isOverdue: false,
+            extraMeta: '',
+            timeLabel: formatDateTime(item.Timestamp),
+            timeSort: parseDateTime_(item.Timestamp),
+            actions: [
+              {
+                label: 'Marcar como resolvido',
+                handler: 'markResolved',
+                className: '',
+              },
+            ],
+          };
         });
 
-        dashboardBody.innerHTML = '';
-        emptyState.hidden = rows.length > 0;
+        const medicationItems = (data.medicamentos || []).map(function (item) {
+          const status = normalizeMedicationStatus_(item);
+          const whatsappAvailable = canShowWhatsAppButton(item);
+          const whatsappSent = normalizeWhatsappStatus_(item.Status_Aviso_WhatsApp) === 'tentativa registrada';
 
-        rows.forEach(function (row) {
-          const tr = document.createElement('tr');
-          if (row.overdue) {
-            tr.classList.add('overdue');
+          const actions = [];
+          if (!item.Comprado) {
+            actions.push({
+              label: 'Marcar como comprado',
+              handler: 'markPurchased',
+              className: 'secondary',
+            });
           }
 
-          tr.innerHTML = [
-            '<td><span class="pill">' + escapeHtml(row.origin) + '</span></td>',
-            '<td>' + escapeHtml(formatDateTime(row.timestamp)) + '</td>',
-            '<td>' + escapeHtml(row.description) + '</td>',
-            '<td>' + escapeHtml(row.person) + '</td>',
-            '<td>' + escapeHtml(row.forecast || '-') + '</td>',
-            '<td>' + row.statusHtml + '</td>',
-            '<td>' + row.actionsHtml + '</td>',
-          ].join('');
+          if (whatsappAvailable) {
+            actions.push({
+              label: whatsappSent ? 'Reabrir WhatsApp' : 'Avisar no WhatsApp',
+              handler: 'notifyClientWhatsApp',
+              className: 'whatsapp',
+            });
+          }
 
-          dashboardBody.appendChild(tr);
+          if (!item.Entregue) {
+            actions.push({
+              label: 'Marcar como entregue',
+              handler: 'markDelivered',
+              className: '',
+            });
+          }
+
+          return {
+            id: item.ID,
+            type: 'medicamento',
+            originLabel: 'Medicamentos',
+            statusLabel: status.label,
+            statusKey: status.key,
+            title: item.Medicamento || 'Medicamento sem nome',
+            description: 'Tipo: ' + (item.Tipo || '-') + ' | Pré-pago: ' + (item.Pre_Pago ? 'Sim' : 'Não'),
+            person: item.Cliente ? item.Cliente + ' / ' + (item.Atendente || '-') : item.Atendente || '-',
+            forecast: item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '',
+            price: formatCurrencyBr_(item.Preco_Venda),
+            isOverdue: isOverdue(item),
+            extraMeta:
+              'Aviso WhatsApp: ' +
+              (item.Status_Aviso_WhatsApp || 'Não registrado') +
+              (item.Telefone ? ' | Telefone: ' + item.Telefone : ''),
+            timeLabel: formatDateTime(item.Timestamp),
+            timeSort: parseDateTime_(item.Timestamp),
+            whatsappNotSent: whatsappAvailable && !whatsappSent,
+            actions: actions,
+          };
+        });
+
+        return generalItems.concat(medicationItems).sort(function (a, b) {
+          if (a.isOverdue !== b.isOverdue) {
+            return a.isOverdue ? -1 : 1;
+          }
+
+          const timeA = Number(a.timeSort || 0);
+          const timeB = Number(b.timeSort || 0);
+          return timeB - timeA;
         });
       }
 
-      function renderChecklist() {
-        if (!checklistContainer || !checklistSummary) {
+      function filterQueueItems_(items) {
+        switch (activeQueueFilter) {
+          case 'pendentes':
+            return items.filter(function (item) {
+              return item.statusKey === 'pendente';
+            });
+          case 'comprados':
+            return items.filter(function (item) {
+              return item.statusKey === 'comprado';
+            });
+          case 'entregues':
+            return items.filter(function (item) {
+              return item.statusKey === 'entregue';
+            });
+          case 'resolvidos_parcialmente':
+            return items.filter(function (item) {
+              return item.statusKey === 'resolvido_parcialmente';
+            });
+          case 'comprados_sem_aviso':
+            return items.filter(function (item) {
+              return item.type === 'medicamento' && item.statusKey === 'comprado' && item.whatsappNotSent;
+            });
+          case 'vencidos_hoje':
+            return items.filter(function (item) {
+              return item.type === 'medicamento' && item.isOverdue;
+            });
+          case 'todos':
+          default:
+            return items;
+        }
+      }
+
+      function setQueueFilter(filterKey) {
+        if (QUEUE_FILTERS.indexOf(filterKey) === -1) {
           return;
         }
 
+        activeQueueFilter = filterKey;
+        document.querySelectorAll('.filter-button').forEach(function (button) {
+          button.classList.toggle('active', button.dataset.filter === filterKey);
+        });
+        renderQueue();
+      }
+
+      function humanizeQueueFilter_(filterKey) {
+        const mapping = {
+          todos: 'Todos',
+          pendentes: 'Pendentes',
+          comprados: 'Comprados',
+          entregues: 'Entregues',
+          resolvidos_parcialmente: 'Resolvidos parcialmente',
+          comprados_sem_aviso: 'Comprados sem aviso',
+          vencidos_hoje: 'Vencidos/Hoje',
+        };
+        return mapping[filterKey] || 'Todos';
+      }
+
+      function normalizeMedicationStatus_(item) {
+        const statusText = String(item.Status || '')
+          .trim()
+          .toLowerCase();
+        if (item.Entregue || statusText === 'entregue') {
+          return { key: 'entregue', label: 'Entregue' };
+        }
+        if (statusText === 'resolvido parcialmente') {
+          return { key: 'resolvido_parcialmente', label: 'Resolvido parcialmente' };
+        }
+        if (item.Comprado || statusText === 'comprado') {
+          return { key: 'comprado', label: 'Comprado' };
+        }
+        return { key: 'pendente', label: 'Pendente' };
+      }
+
+      function normalizeWhatsappStatus_(value) {
+        return String(value || '')
+          .trim()
+          .toLowerCase();
+      }
+
+      function renderChecklistSection() {
         const checklist = dashboardData.checklistTurno;
         const items = checklist.items || [];
         const summary = checklist.summary || buildChecklistSummary_(items);
-        const lateWindow = Boolean(checklist.isAfterDeadline);
+        const hasLateAlert = checklist.isAfterDeadline && summary.itensPendentes > 0;
 
-        checklistSummary.innerHTML = buildChecklistSummaryChips_(summary, checklist.turno, checklist.horarioReferencia);
-        checklistContainer.innerHTML = '';
+        checklistSummary.innerHTML = [
+          '<span class="checklist-chip">Turno: ' + escapeHtml(checklist.turno || 'Manhã') + '</span>',
+          '<span class="checklist-chip">Data: ' + escapeHtml(checklist.data || '-') + '</span>',
+          '<span class="checklist-chip">Itens: ' + escapeHtml(summary.totalItens) + '</span>',
+          '<span class="checklist-chip">Feitos: ' + escapeHtml(summary.itensFeitos) + '</span>',
+          '<span class="checklist-chip">Pendentes: ' + escapeHtml(summary.itensPendentes) + '</span>',
+          '<span class="checklist-chip">Concluído: ' + escapeHtml(summary.percentualConcluido) + '%</span>',
+          hasLateAlert
+            ? '<span class="checklist-chip alert">Pendências após 07:30</span>'
+            : '',
+        ].join('');
+
+        if (items.length > 0) {
+          checklistHint.textContent = 'Checklist de hoje já gerado.';
+          checklistGenerateBtn.textContent = 'Atualizar visualização';
+        } else {
+          checklistHint.textContent = 'Checklist ainda não gerado.';
+          checklistGenerateBtn.textContent = 'Gerar checklist de hoje';
+        }
+
+        checklistContent.classList.toggle('hidden', !isChecklistExpanded);
+        checklistToggleBtn.textContent = isChecklistExpanded ? 'Fechar checklist' : 'Abrir checklist';
+
+        if (!isChecklistExpanded) {
+          checklistCategories.innerHTML = '';
+          return;
+        }
 
         if (items.length === 0) {
-          checklistContainer.innerHTML = '<div class="empty">Checklist do turno ainda sem itens.</div>';
+          checklistCategories.innerHTML =
+            '<div class="empty-box">Sem itens para o turno. Clique em "Gerar checklist de hoje".</div>';
           return;
         }
 
         const grouped = groupChecklistByCategory_(items);
-        const groupHtml = Object.keys(grouped)
+        checklistCategories.innerHTML = Object.keys(grouped)
           .map(function (category) {
-            const itemsHtml = grouped[category]
-              .map(function (item) {
-                return buildChecklistItemHtml_(item, lateWindow);
-              })
-              .join('');
+            const categoryKey = encodeURIComponent(category);
+            const categoryItems = grouped[category];
+            const summaryByCategory = buildChecklistSummary_(categoryItems);
+            const isOpen = openChecklistCategories.has(category);
+            const itemsHtml = isOpen
+              ? categoryItems
+                  .map(function (item) {
+                    return buildChecklistItemHtml_(item, checklist.isAfterDeadline);
+                  })
+                  .join('')
+              : '';
 
             return (
-              '<div class="checklist-group">' +
-              '<h4>' +
+              '<section class="checklist-category">' +
+              '<button type="button" class="checklist-category-head" onclick="toggleChecklistCategory(\'' +
+              escapeAttribute(categoryKey) +
+              "')\">" +
+              '<span>' +
               escapeHtml(category) +
-              '</h4>' +
-              itemsHtml +
-              '</div>'
+              '</span>' +
+              '<span class="checklist-category-meta">' +
+              escapeHtml(summaryByCategory.itensFeitos) +
+              '/' +
+              escapeHtml(summaryByCategory.totalItens) +
+              ' • ' +
+              escapeHtml(summaryByCategory.percentualConcluido) +
+              '%</span>' +
+              '</button>' +
+              (isOpen ? '<div class="checklist-items">' + itemsHtml + '</div>' : '') +
+              '</section>'
             );
           })
           .join('');
+      }
 
-        checklistContainer.innerHTML = groupHtml;
+      function groupChecklistByCategory_(items) {
+        return items.reduce(function (groups, item) {
+          const category = item.Categoria || 'Sem categoria';
+          if (!groups[category]) {
+            groups[category] = [];
+          }
+          groups[category].push(item);
+          return groups;
+        }, {});
+      }
+
+      function buildChecklistItemHtml_(item, isAfterDeadline) {
+        const status = formatChecklistStatus_(item.Status);
+        const statusClass = statusToClass_(status);
+        const isLate = isAfterDeadline && status === 'Pendente';
+        const itemClass = 'check-item' + (isLate ? ' late' : '');
+        const observationInputId = buildChecklistObservationInputId_(item.ID);
+        const showObservation = openChecklistObservations.has(item.ID);
+        const hasObservation = Boolean((item.Observacao || '').trim());
+        const checkInfo = item.Data_Hora_Check
+          ? 'Última marcação: ' + formatDateTime(item.Data_Hora_Check)
+          : 'Sem marcação';
+
+        return (
+          '<article class="' +
+          itemClass +
+          '">' +
+          '<div class="check-item-title">' +
+          escapeHtml(item.Item) +
+          ' <span class="badge ' +
+          statusClass +
+          '">' +
+          escapeHtml(status) +
+          '</span>' +
+          '</div>' +
+          '<div class="check-item-desc">' +
+          escapeHtml(item.Descricao || '') +
+          '</div>' +
+          '<div class="check-item-meta">' +
+          escapeHtml(checkInfo) +
+          '</div>' +
+          '<div class="check-actions">' +
+          buildChecklistActionButton_(item.ID, 'Feito', status === 'Feito') +
+          buildChecklistActionButton_(item.ID, 'Não aplicável', status === 'Não aplicável', 'secondary') +
+          buildChecklistActionButton_(item.ID, 'Pendente', status === 'Pendente', 'light') +
+          '</div>' +
+          '<div class="obs-bar">' +
+          '<button type="button" class="light" onclick="toggleChecklistObservation(\'' +
+          escapeAttribute(item.ID) +
+          '\')">' +
+          (showObservation ? 'Fechar observação' : 'Observação') +
+          '</button>' +
+          (hasObservation ? '<span class="obs-flag">com observação</span>' : '<span></span>') +
+          '</div>' +
+          (showObservation
+            ? '<div class="obs-panel">' +
+              '<input id="' +
+              escapeAttribute(observationInputId) +
+              '" type="text" value="' +
+              escapeAttribute(item.Observacao || '') +
+              '" placeholder="Observação do item">' +
+              '<button type="button" class="light" onclick="saveChecklistObservation(\'' +
+              escapeAttribute(item.ID) +
+              '\', \'' +
+              escapeAttribute(observationInputId) +
+              '\')">Salvar</button>' +
+              '</div>'
+            : '') +
+          '</article>'
+        );
+      }
+
+      function buildChecklistActionButton_(itemId, statusLabel, isActive, className) {
+        const statusClass = className ? ' ' + className : '';
+        const activeClass = isActive ? ' active' : '';
+        return (
+          '<button ' +
+          'type="button" ' +
+          'class="' +
+          statusClass.trim() +
+          activeClass +
+          '" ' +
+          'data-check-action="1" ' +
+          'onclick="updateChecklistStatus(\'' +
+          escapeAttribute(itemId) +
+          "', '" +
+          escapeAttribute(statusLabel) +
+          "')\">" +
+          escapeHtml(statusLabel === 'Não aplicável' ? 'N/A' : statusLabel) +
+          '</button>'
+        );
+      }
+
+      function toggleChecklistPanel() {
+        isChecklistExpanded = !isChecklistExpanded;
+        renderChecklistSection();
+      }
+
+      function toggleChecklistCategory(encodedCategory) {
+        const category = decodeURIComponent(encodedCategory);
+        if (openChecklistCategories.has(category)) {
+          openChecklistCategories.delete(category);
+        } else {
+          openChecklistCategories.add(category);
+        }
+        renderChecklistSection();
+      }
+
+      function toggleChecklistObservation(itemId) {
+        if (openChecklistObservations.has(itemId)) {
+          openChecklistObservations.delete(itemId);
+        } else {
+          openChecklistObservations.add(itemId);
+        }
+        renderChecklistSection();
+      }
+
+      function updateChecklistStatus(id, status) {
+        const responsavel = checklistResponsavel ? checklistResponsavel.value : '';
+        setStatus(checklistStatus, 'Atualizando checklist...');
+        setChecklistButtonsDisabled(true);
+
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData = normalizeData(response.items);
+              renderAll();
+              setStatus(checklistStatus, 'Checklist atualizado.');
+              setChecklistButtonsDisabled(false);
+            })
+            .withFailureHandler(function (error) {
+              setStatus(checklistStatus, getErrorMessage(error), true);
+              setChecklistButtonsDisabled(false);
+            })
+            .updateChecklistItemStatus(id, status, responsavel);
+        } catch (error) {
+          setStatus(checklistStatus, error.message, true);
+          setChecklistButtonsDisabled(false);
+        }
+      }
+
+      function saveChecklistObservation(id, inputId) {
+        const input = document.getElementById(inputId);
+        const observacao = input ? input.value : '';
+        const responsavel = checklistResponsavel ? checklistResponsavel.value : '';
+
+        setStatus(checklistStatus, 'Salvando observação...');
+        setChecklistButtonsDisabled(true);
+
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData = normalizeData(response.items);
+              renderAll();
+              setStatus(checklistStatus, 'Observação salva.');
+              setChecklistButtonsDisabled(false);
+            })
+            .withFailureHandler(function (error) {
+              setStatus(checklistStatus, getErrorMessage(error), true);
+              setChecklistButtonsDisabled(false);
+            })
+            .updateChecklistItemObservation(id, observacao, responsavel);
+        } catch (error) {
+          setStatus(checklistStatus, error.message, true);
+          setChecklistButtonsDisabled(false);
+        }
+      }
+
+      function refreshChecklistToday() {
+        setStatus(checklistStatus, 'Atualizando checklist...');
+        setChecklistButtonsDisabled(true);
+
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData = normalizeData(response.items);
+              renderAll();
+              setStatus(checklistStatus, 'Checklist atualizado.');
+              setChecklistButtonsDisabled(false);
+            })
+            .withFailureHandler(function (error) {
+              setStatus(checklistStatus, getErrorMessage(error), true);
+              setChecklistButtonsDisabled(false);
+            })
+            .generateTodayMorningChecklist();
+        } catch (error) {
+          setStatus(checklistStatus, error.message, true);
+          setChecklistButtonsDisabled(false);
+        }
+      }
+
+      function formatChecklistStatus_(status) {
+        const normalized = String(status || '')
+          .trim()
+          .toLowerCase();
+        if (normalized === 'feito') {
+          return 'Feito';
+        }
+        if (normalized === 'não aplicável' || normalized === 'nao aplicavel' || normalized === 'n/a') {
+          return 'Não aplicável';
+        }
+        return 'Pendente';
+      }
+
+      function statusToClass_(status) {
+        if (status === 'Feito') {
+          return 'status-feito';
+        }
+        if (status === 'Não aplicável') {
+          return 'status-na';
+        }
+        if (status === 'Entregue') {
+          return 'status-entregue';
+        }
+        if (status === 'Comprado') {
+          return 'status-comprado';
+        }
+        return 'status-pendente';
+      }
+
+      function buildChecklistObservationInputId_(id) {
+        return 'check-obs-' + String(id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
       }
 
       function buildChecklistSummary_(items) {
@@ -661,356 +1391,198 @@
         };
       }
 
-      function buildChecklistSummaryChips_(summary, turno, horarioReferencia) {
-        return [
-          '<span class="summary-chip">Turno: ' + escapeHtml(turno || 'Manhã') + '</span>',
-          '<span class="summary-chip">Referência: ' + escapeHtml(horarioReferencia || '07:00') + '</span>',
-          '<span class="summary-chip">Total: ' + escapeHtml(summary.totalItens) + '</span>',
-          '<span class="summary-chip">Feitos: ' + escapeHtml(summary.itensFeitos) + '</span>',
-          '<span class="summary-chip">Pendentes: ' + escapeHtml(summary.itensPendentes) + '</span>',
-          '<span class="summary-chip percentual">Concluído: ' +
-            escapeHtml(summary.percentualConcluido) +
-            '%</span>',
-        ].join('');
+      function updateVisibleFields() {
+        const isMedication = categorySelect.value === 'Medicamentos';
+        generalFields.classList.toggle('hidden', isMedication);
+        medicineFields.classList.toggle('hidden', !isMedication);
+        clearStatus(formStatus);
       }
 
-      function groupChecklistByCategory_(items) {
-        return items.reduce(function (groups, item) {
-          const category = item.Categoria || 'Sem categoria';
-          if (!groups[category]) {
-            groups[category] = [];
+      function toggleFormPanel() {
+        const willOpen = formPanel.classList.contains('hidden');
+        formPanel.classList.toggle('hidden', !willOpen);
+        toggleFormBtn.textContent = willOpen ? 'Fechar novo registro' : 'Novo registro';
+      }
+
+      function handleSubmit(event) {
+        event.preventDefault();
+        clearStatus(formStatus);
+
+        const tab = categorySelect.value;
+        const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
+        if (tab === 'Medicamentos') {
+          const priceResult = normalizePriceInput_(payload.precoVenda);
+          if (priceResult.error) {
+            setStatus(formStatus, priceResult.error, true);
+            return;
           }
-          groups[category].push(item);
-          return groups;
-        }, {});
-      }
-
-      function buildChecklistItemHtml_(item, lateWindow) {
-        const status = formatChecklistStatus_(item.Status);
-        const lateClass = lateWindow && status === 'Pendente' ? ' late' : '';
-        const observationInputId = buildChecklistObservationInputId_(item.ID);
-        const checkInfo = item.Data_Hora_Check
-          ? 'Última marcação: ' + formatDateTime(item.Data_Hora_Check)
-          : 'Sem marcação';
-
-        return `
-          <div class="checklist-item${lateClass}">
-            <div class="checklist-item-title">${escapeHtml(item.Item)}</div>
-            <div class="checklist-item-description">${escapeHtml(item.Descricao || '')}</div>
-            <div class="checklist-item-meta">Status: ${escapeHtml(status)} | ${escapeHtml(checkInfo)}</div>
-            <div class="checklist-item-actions">
-              <button type="button" onclick="updateChecklistStatus('${escapeAttribute(item.ID)}', 'Feito')">Feito</button>
-              <button type="button" class="secondary" onclick="updateChecklistStatus('${escapeAttribute(
-                item.ID
-              )}', 'Não aplicável')">N/A</button>
-              <button type="button" class="light" onclick="updateChecklistStatus('${escapeAttribute(
-                item.ID
-              )}', 'Pendente')">Pendente</button>
-            </div>
-            <div class="checklist-observation">
-              <input
-                id="${escapeAttribute(observationInputId)}"
-                type="text"
-                placeholder="Observação"
-                value="${escapeAttribute(item.Observacao || '')}"
-              >
-              <button
-                type="button"
-                class="light"
-                onclick="saveChecklistObservation('${escapeAttribute(item.ID)}', '${escapeAttribute(
-                  observationInputId
-                )}')"
-              >
-                Salvar observação
-              </button>
-            </div>
-          </div>
-        `;
-      }
-
-      function updateChecklistStatus(id, status) {
-        setStatus(checklistStatus, 'Atualizando checklist...');
-        setChecklistButtonsDisabled(true);
-
-        google.script.run
-          .withSuccessHandler(function (response) {
-            dashboardData = normalizeData(response.items);
-            renderDashboard();
-            setStatus(checklistStatus, 'Checklist atualizado.');
-            setChecklistButtonsDisabled(false);
-          })
-          .withFailureHandler(function (error) {
-            setStatus(checklistStatus, getErrorMessage(error), true);
-            setChecklistButtonsDisabled(false);
-          })
-          .updateChecklistItemStatus(id, status, '');
-      }
-
-      function saveChecklistObservation(id, inputId) {
-        const input = document.getElementById(inputId);
-        const observacao = input ? input.value : '';
-
-        setStatus(checklistStatus, 'Salvando observação...');
-        setChecklistButtonsDisabled(true);
-
-        google.script.run
-          .withSuccessHandler(function (response) {
-            dashboardData = normalizeData(response.items);
-            renderDashboard();
-            setStatus(checklistStatus, 'Observação salva.');
-            setChecklistButtonsDisabled(false);
-          })
-          .withFailureHandler(function (error) {
-            setStatus(checklistStatus, getErrorMessage(error), true);
-            setChecklistButtonsDisabled(false);
-          })
-          .updateChecklistItemObservation(id, observacao, '');
-      }
-
-      function generateChecklistToday() {
-        setStatus(checklistStatus, 'Gerando checklist de hoje...');
-        setChecklistButtonsDisabled(true);
-
-        google.script.run
-          .withSuccessHandler(function (response) {
-            dashboardData = normalizeData(response.items);
-            renderDashboard();
-            setStatus(checklistStatus, 'Checklist do turno disponível.');
-            setChecklistButtonsDisabled(false);
-          })
-          .withFailureHandler(function (error) {
-            setStatus(checklistStatus, getErrorMessage(error), true);
-            setChecklistButtonsDisabled(false);
-          })
-          .generateTodayMorningChecklist();
-      }
-
-      function formatChecklistStatus_(status) {
-        const normalized = String(status || '')
-          .trim()
-          .toLowerCase();
-
-        if (normalized === 'feito') {
-          return 'Feito';
+          payload.precoVenda = priceResult.value;
         }
-        if (normalized === 'não aplicável' || normalized === 'nao aplicavel' || normalized === 'n/a') {
-          return 'Não aplicável';
+
+        const validationError = validatePayload(tab, payload);
+        if (validationError) {
+          setStatus(formStatus, validationError, true);
+          return;
         }
-        return 'Pendente';
+
+        setFormLoading_(true);
+        setStatus(formStatus, 'Salvando...');
+
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData = normalizeData(response.items);
+              renderAll();
+              requestForm.reset();
+              updateVisibleFields();
+              setStatus(formStatus, 'Registro salvo com sucesso.');
+              setFormLoading_(false);
+            })
+            .withFailureHandler(function (error) {
+              setStatus(formStatus, getErrorMessage(error), true);
+              setFormLoading_(false);
+            })
+            .saveData(tab, payload);
+        } catch (error) {
+          setStatus(formStatus, error.message, true);
+          setFormLoading_(false);
+        }
       }
 
-      function buildChecklistObservationInputId_(id) {
-        return 'checklist-observacao-' + String(id || '').replace(/[^a-zA-Z0-9_-]/g, '_');
-      }
-
-      function mapGeneralRow(item) {
+      function getGeneralPayload() {
         return {
-          id: item.ID,
-          origin: 'Geral',
-          timestamp: item.Timestamp,
-          description: item.Descricao,
-          person: item.Autor,
-          forecast: '',
-          overdue: false,
-          statusHtml: 'Aberto',
-          actionsHtml:
-            '<button type="button" onclick="markResolved(\'' +
-            escapeAttribute(item.ID) +
-            '\')">Marcar como Resolvido</button>',
+          autor: document.getElementById('autor').value,
+          descricao: document.getElementById('descricao').value,
         };
       }
 
-      function mapMedicineRow(item) {
-        const forecast = item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '';
-        const status = [
-          'Tipo: ' + (item.Tipo || '-'),
-          'Status: ' + (item.Status || 'Pendente'),
-          'Preço de venda: ' + (formatCurrencyBr_(item.Preco_Venda) || '-'),
-          'Comprado: ' + (item.Comprado ? 'Sim' : 'Nao'),
-          'Entregue: ' + (item.Entregue ? 'Sim' : 'Nao'),
-          'Pre-pago: ' + (item.Pre_Pago ? 'Sim' : 'Nao'),
-          'Aviso WhatsApp: ' + (item.Status_Aviso_WhatsApp || 'Nao registrado'),
-        ];
-
-        if (item.Data_Aviso_WhatsApp) {
-          status.push('Data aviso: ' + formatDateTime(item.Data_Aviso_WhatsApp));
-        }
-
+      function getMedicinePayload() {
         return {
-          id: item.ID,
-          origin: 'Medicamentos',
-          timestamp: item.Timestamp,
-          description: item.Medicamento,
-          person: item.Cliente + ' / ' + (item.Telefone || '-') + ' / ' + item.Atendente,
-          forecast: forecast,
-          overdue: isOverdue(item),
-          statusHtml: escapeHtml(status.join(' | ')),
-          actionsHtml: buildMedicineActionsHtml(item),
+          tipo: document.getElementById('tipo').value,
+          medicamento: document.getElementById('medicamento').value,
+          precoVenda: document.getElementById('precoVenda').value,
+          prePago: document.getElementById('prePago').checked,
+          cliente: document.getElementById('cliente').value,
+          telefone: document.getElementById('telefone').value,
+          atendente: document.getElementById('atendente').value,
+          previsaoEntrega: document.getElementById('previsaoEntrega').value,
         };
       }
 
-      function buildMedicineActionsHtml(item) {
-        const actions = ['<div class="actions">'];
-
-        if (!item.Comprado) {
-          actions.push(
-            '<button class="secondary" type="button" onclick="markPurchased(\'' +
-              escapeAttribute(item.ID) +
-              '\')">Marcar como Comprado</button>'
-          );
-        } else {
-          actions.push('<button class="secondary" type="button" disabled>Comprado</button>');
+      function validatePayload(tab, payload) {
+        if (tab === 'Geral') {
+          if (!payload.autor.trim()) return 'Informe o autor.';
+          if (!payload.descricao.trim()) return 'Informe a descrição.';
         }
 
-        if (!item.Entregue) {
-          actions.push(
-            '<button type="button" onclick="markDelivered(\'' +
-              escapeAttribute(item.ID) +
-              '\')">Marcar como Entregue</button>'
-          );
-        } else {
-          actions.push('<button type="button" class="light" disabled>Entregue</button>');
+        if (tab === 'Medicamentos') {
+          if (!payload.medicamento.trim()) return 'Informe o medicamento.';
+          if (!payload.cliente.trim()) return 'Informe o cliente.';
+          if (!payload.telefone.trim()) return 'Informe o telefone do cliente.';
+          if (!payload.atendente.trim()) return 'Informe o atendente.';
+          if (!payload.previsaoEntrega) return 'Informe a previsão de entrega.';
         }
 
-        if (canShowWhatsAppButton(item)) {
-          actions.push(
-            '<button class="whatsapp" type="button" onclick="notifyClientWhatsApp(\'' +
-              escapeAttribute(item.ID) +
-              '\')">Avisar cliente no WhatsApp</button>'
-          );
-        }
-
-        actions.push('</div>');
-        return actions.join('');
+        return '';
       }
 
       function markPurchased(id) {
-        runDashboardAction('Marcando como comprado...', 'markAsPurchased', id);
+        runQueueAction_('Marcando como comprado...', 'markAsPurchased', id);
       }
 
       function markDelivered(id) {
-        runDashboardAction('Marcando como entregue...', 'markAsDelivered', id);
+        runQueueAction_('Marcando como entregue...', 'markAsDelivered', id);
       }
 
       function markResolved(id) {
-        runDashboardAction('Marcando como resolvido...', 'markAsResolved', id);
+        runQueueAction_('Marcando como resolvido...', 'markAsResolved', id);
       }
 
       function notifyClientWhatsApp(id) {
-        setStatus(dashboardStatus, 'Registrando tentativa de aviso no WhatsApp...');
-        setDashboardButtonsDisabled(true);
+        setStatus(queueStatus, 'Registrando tentativa de aviso no WhatsApp...');
+        setQueueButtonsDisabled(true);
 
-        const previewWindow = window.open('about:blank', '_blank');
+        let previewWindow = null;
+        try {
+          previewWindow = window.open('about:blank', '_blank');
+        } catch (error) {
+          previewWindow = null;
+        }
 
-        google.script.run
-          .withSuccessHandler(function (response) {
-            dashboardData = normalizeData(response.items);
-            renderDashboard();
-            setStatus(dashboardStatus, 'Tentativa registrada. Abrindo WhatsApp...');
-            setDashboardButtonsDisabled(false);
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData = normalizeData(response.items);
+              renderAll();
+              setStatus(queueStatus, 'Tentativa registrada. Abrindo WhatsApp...');
+              setQueueButtonsDisabled(false);
 
-            if (previewWindow) {
-              previewWindow.location.href = response.whatsAppUrl;
-            } else {
-              window.open(response.whatsAppUrl, '_blank');
-            }
-          })
-          .withFailureHandler(function (error) {
-            if (previewWindow) {
-              previewWindow.close();
-            }
-            setStatus(dashboardStatus, getErrorMessage(error), true);
-            setDashboardButtonsDisabled(false);
-          })
-          .registerWhatsAppAttempt(id);
+              if (previewWindow) {
+                previewWindow.location.href = response.whatsAppUrl;
+              } else {
+                window.open(response.whatsAppUrl, '_blank');
+              }
+            })
+            .withFailureHandler(function (error) {
+              if (previewWindow) {
+                previewWindow.close();
+              }
+              setStatus(queueStatus, getErrorMessage(error), true);
+              setQueueButtonsDisabled(false);
+            })
+            .registerWhatsAppAttempt(id);
+        } catch (error) {
+          if (previewWindow) {
+            previewWindow.close();
+          }
+          setStatus(queueStatus, error.message, true);
+          setQueueButtonsDisabled(false);
+        }
       }
 
-      function runDashboardAction(message, functionName, id) {
-        setStatus(dashboardStatus, message);
-        setDashboardButtonsDisabled(true);
+      function runQueueAction_(message, functionName, id) {
+        setStatus(queueStatus, message);
+        setQueueButtonsDisabled(true);
 
-        google.script.run
-          .withSuccessHandler(function (response) {
-            dashboardData = normalizeData(response.items);
-            renderDashboard();
-            setStatus(dashboardStatus, 'Dashboard atualizado.');
-            setDashboardButtonsDisabled(false);
-          })
-          .withFailureHandler(function (error) {
-            setStatus(dashboardStatus, getErrorMessage(error), true);
-            setDashboardButtonsDisabled(false);
-          })
-          [functionName](id);
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              dashboardData = normalizeData(response.items);
+              renderAll();
+              setStatus(queueStatus, 'Fila operacional atualizada.');
+              setQueueButtonsDisabled(false);
+            })
+            .withFailureHandler(function (error) {
+              setStatus(queueStatus, getErrorMessage(error), true);
+              setQueueButtonsDisabled(false);
+            })
+            [functionName](id);
+        } catch (error) {
+          setStatus(queueStatus, error.message, true);
+          setQueueButtonsDisabled(false);
+        }
       }
 
-      function canShowWhatsAppButton(item) {
-        const status = String(item.Status || '')
-          .trim()
-          .toLowerCase();
-        return Boolean(item.Comprado) || Boolean(item.Entregue) || status === 'resolvido parcialmente';
+      function setFormLoading_(isLoading) {
+        saveButton.disabled = isLoading;
       }
 
-      function normalizePriceInput_(value) {
-        if (value === null || value === undefined || String(value).trim() === '') {
-          return { value: '', error: '' };
-        }
-
-        let normalized = String(value).trim();
-        normalized = normalized.replace(/\s/g, '').replace(/^R\$/i, '');
-
-        if (!normalized) {
-          return { value: '', error: '' };
-        }
-
-        if (normalized.indexOf('-') === 0) {
-          return { value: '', error: 'Preço de venda não pode ser negativo.' };
-        }
-
-        if (normalized.indexOf(',') >= 0 && normalized.indexOf('.') >= 0) {
-          normalized = normalized.replace(/\./g, '').replace(',', '.');
-        } else if (normalized.indexOf(',') >= 0) {
-          normalized = normalized.replace(',', '.');
-        }
-
-        const parsed = Number(normalized);
-        if (Number.isNaN(parsed)) {
-          return { value: '', error: 'Preço de venda inválido. Informe um valor numérico válido.' };
-        }
-
-        if (parsed < 0) {
-          return { value: '', error: 'Preço de venda não pode ser negativo.' };
-        }
-
-        return {
-          value: Math.round(parsed * 100) / 100,
-          error: '',
-        };
-      }
-
-      function formatCurrencyBr_(value) {
-        const normalized = normalizePriceInput_(value);
-        if (normalized.error || normalized.value === '') {
-          return '';
-        }
-
-        return Number(normalized.value).toLocaleString('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
+      function setQueueButtonsDisabled(disabled) {
+        queueList.querySelectorAll('[data-queue-action]').forEach(function (button) {
+          button.disabled = disabled;
         });
       }
 
-      function isOverdue(item) {
-        if (!item.Previsao_Entrega || item.Entregue) {
-          return false;
+      function setChecklistButtonsDisabled(disabled) {
+        if (checklistGenerateBtn) {
+          checklistGenerateBtn.disabled = disabled;
         }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const forecast = new Date(item.Previsao_Entrega + 'T00:00:00');
-        forecast.setHours(0, 0, 0, 0);
-
-        return today.getTime() >= forecast.getTime();
+        if (checklistToggleBtn) {
+          checklistToggleBtn.disabled = disabled;
+        }
+        checklistCategories.querySelectorAll('[data-check-action], button').forEach(function (button) {
+          button.disabled = disabled;
+        });
       }
 
       function normalizeData(data) {
@@ -1045,6 +1617,18 @@
         };
       }
 
+      function getScriptRunner_() {
+        if (
+          typeof google === 'undefined' ||
+          !google.script ||
+          !google.script.run ||
+          typeof google.script.run.withSuccessHandler !== 'function'
+        ) {
+          throw new Error('Ação disponível apenas no Web App publicado.');
+        }
+        return google.script.run;
+      }
+
       function parseInitialDataB64(encoded) {
         if (!encoded) {
           return normalizeData({});
@@ -1074,36 +1658,71 @@
 
           return normalizeData(JSON.parse(jsonText));
         } catch (error) {
-          console.error('Falha ao carregar dados iniciais do template.', error);
+          console.error('Falha ao carregar dados iniciais.', error);
           return normalizeData({});
         }
       }
 
-      function setLoading(isLoading) {
-        saveButton.disabled = isLoading;
+      function normalizePriceInput_(value) {
+        if (value === null || value === undefined || String(value).trim() === '') {
+          return { value: '', error: '' };
+        }
+
+        let normalized = String(value).trim();
+        normalized = normalized.replace(/\s/g, '').replace(/^R\$/i, '');
+        if (!normalized) {
+          return { value: '', error: '' };
+        }
+        if (normalized.indexOf('-') === 0) {
+          return { value: '', error: 'Preço de venda não pode ser negativo.' };
+        }
+
+        if (normalized.indexOf(',') >= 0 && normalized.indexOf('.') >= 0) {
+          normalized = normalized.replace(/\./g, '').replace(',', '.');
+        } else if (normalized.indexOf(',') >= 0) {
+          normalized = normalized.replace(',', '.');
+        }
+
+        const parsed = Number(normalized);
+        if (Number.isNaN(parsed)) {
+          return { value: '', error: 'Preço de venda inválido. Informe um valor numérico válido.' };
+        }
+        if (parsed < 0) {
+          return { value: '', error: 'Preço de venda não pode ser negativo.' };
+        }
+
+        return { value: Math.round(parsed * 100) / 100, error: '' };
       }
 
-      function setDashboardButtonsDisabled(disabled) {
-        dashboardBody.querySelectorAll('button').forEach(function (button) {
-          button.disabled = disabled;
+      function formatCurrencyBr_(value) {
+        const normalized = normalizePriceInput_(value);
+        if (normalized.error || normalized.value === '') {
+          return '';
+        }
+        return Number(normalized.value).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
         });
       }
 
-      function setChecklistButtonsDisabled(disabled) {
-        if (generateChecklistButton) {
-          generateChecklistButton.disabled = disabled;
+      function isOverdue(item) {
+        if (!item.Previsao_Entrega || item.Entregue) {
+          return false;
         }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const forecast = new Date(item.Previsao_Entrega + 'T00:00:00');
+        forecast.setHours(0, 0, 0, 0);
+        return today.getTime() >= forecast.getTime();
+      }
 
-        if (!checklistContainer) {
-          return;
-        }
-
-        checklistContainer.querySelectorAll('button').forEach(function (button) {
-          button.disabled = disabled;
-        });
+      function parseDateTime_(value) {
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? 0 : date.getTime();
       }
 
       function setStatus(element, message, isError) {
+        if (!element) return;
         element.textContent = message || '';
         element.classList.toggle('error', Boolean(isError));
       }
@@ -1116,17 +1735,24 @@
         return error && error.message ? error.message : 'Ocorreu um erro inesperado.';
       }
 
+      function canShowWhatsAppButton(item) {
+        const status = String(item.Status || '')
+          .trim()
+          .toLowerCase();
+        return Boolean(item.Comprado) || Boolean(item.Entregue) || status === 'resolvido parcialmente';
+      }
+
       function formatDateTime(value) {
         if (!value) return '-';
         const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
+        if (Number.isNaN(date.getTime())) return String(value);
         return date.toLocaleString('pt-BR');
       }
 
       function formatDate(value) {
         if (!value) return '';
         const date = new Date(value + 'T00:00:00');
-        if (Number.isNaN(date.getTime())) return value;
+        if (Number.isNaN(date.getTime())) return String(value);
         return date.toLocaleDateString('pt-BR');
       }
 
