@@ -25,6 +25,8 @@ const HEADERS = {
     'ID',
     'Timestamp',
     'Autor',
+    'Titulo',
+    'Urgencia',
     'Descricao',
     'Resolvido',
     'Ultima_Acao_Por',
@@ -76,6 +78,8 @@ const HEADERS = {
     'Ultima_Acao_Em',
     'Resolvido_Por',
     'Data_Resolucao',
+    'Titulo',
+    'Urgencia',
   ],
   Checklist_Turnos: [
     'ID',
@@ -507,6 +511,8 @@ function saveData(tab, data, operador) {
       ID: id,
       Timestamp: timestamp,
       Autor: sanitizeText_(data.autor),
+      Titulo: sanitizeText_(data.titulo),
+      Urgencia: normalizeUrgenciaGeral_(data.urgencia),
       Descricao: sanitizeText_(data.descricao),
       Resolvido: false,
       Ultima_Acao_Por: op,
@@ -781,6 +787,8 @@ function populateTestData() {
 
   saveData(SHEET_NAMES.GERAL, {
     autor: 'Maria',
+    titulo: 'Conferencia de caixa',
+    urgencia: 'Normal',
     descricao: 'Conferir divergencia no caixa do turno da tarde.',
   });
 
@@ -956,6 +964,8 @@ function buildArchiveRow_(sheetName, item) {
     Tipo: item.Tipo || '',
     Autor: item.Autor || '',
     Descricao: item.Descricao || '',
+    Titulo: sanitizeText_(item.Titulo || ''),
+    Urgencia: normalizeUrgenciaGeral_(item.Urgencia || ''),
     Medicamento: item.Medicamento || '',
     Pre_Pago: item.Pre_Pago || false,
     Cliente: item.Cliente || '',
@@ -1046,6 +1056,8 @@ function normalizeItemForClient_(item) {
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
   item.Preco_Venda = normalizeSalePriceForClient_(item.Preco_Venda);
+  item.Titulo = sanitizeText_(item.Titulo);
+  item.Urgencia = normalizeUrgenciaGeral_(item.Urgencia);
 
   if (sanitizeText_(item.Tipo).toLowerCase() === 'falta') {
     item.Preco_Venda = '';
@@ -1255,6 +1267,14 @@ function formatDateForInput_(date) {
 
 function sanitizeText_(value) {
   return String(value || '').trim();
+}
+
+function normalizeUrgenciaGeral_(value) {
+  const normalized = sanitizeText_(value).toLowerCase();
+  if (normalized === 'urgente') {
+    return 'Urgente';
+  }
+  return 'Normal';
 }
 
 function toBoolean_(value) {

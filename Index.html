@@ -470,11 +470,6 @@
         font-size: 12px;
       }
 
-      .form-panel h2 {
-        margin: 0 0 8px;
-        font-size: 18px;
-      }
-
       .form-grid {
         display: grid;
         gap: 10px;
@@ -606,6 +601,68 @@
       .filter-button:disabled {
         opacity: 0.55;
         cursor: wait;
+      }
+
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(15, 23, 42, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .modal-overlay.hidden {
+        display: none !important;
+      }
+
+      .modal-dialog {
+        max-height: min(92vh, 900px);
+        overflow-y: auto;
+        width: min(520px, 100%);
+        position: relative;
+        margin: 0;
+      }
+
+      .modal-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .modal-head h2 {
+        margin: 0;
+        font-size: 1.15rem;
+      }
+
+      .modal-icon-btn {
+        border: 0;
+        background: transparent;
+        font-size: 26px;
+        line-height: 1;
+        cursor: pointer;
+        color: var(--muted);
+        padding: 0 4px;
+      }
+
+      .modal-icon-btn:hover {
+        color: var(--text);
+      }
+
+      .date-shortcuts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+      }
+
+      .date-shortcuts button {
+        font-size: 12px;
+        padding: 6px 10px;
       }
 
       .empty-box {
@@ -789,9 +846,14 @@
         </div>
         <div id="checklist-status" class="status" aria-live="polite"></div>
       </section>
+    </main>
 
-      <section id="form-panel" class="card hidden" style="margin-top: 10px;">
-        <h2>Novo registro</h2>
+    <div id="form-modal-overlay" class="modal-overlay hidden" aria-hidden="true">
+      <div class="modal-dialog card" role="dialog" aria-modal="true" aria-labelledby="form-modal-title">
+        <div class="modal-head">
+          <h2 id="form-modal-title">Novo registro</h2>
+          <button type="button" id="form-modal-close" class="modal-icon-btn" aria-label="Fechar">×</button>
+        </div>
         <form id="request-form" class="form-grid">
           <div class="field">
             <label for="category">Categoria</label>
@@ -803,8 +865,19 @@
 
           <div id="general-fields">
             <div class="field">
+              <label for="tituloGeral">Título / Assunto</label>
+              <input id="tituloGeral" name="tituloGeral" type="text" placeholder="Resumo curto da solicitação">
+            </div>
+            <div class="field">
+              <label for="urgenciaGeral">Urgência</label>
+              <select id="urgenciaGeral" name="urgenciaGeral">
+                <option value="Normal">Normal</option>
+                <option value="Urgente">Urgente</option>
+              </select>
+            </div>
+            <div class="field">
               <label for="autor">Autor</label>
-              <input id="autor" name="autor" autocomplete="name">
+              <input id="autor" name="autor" autocomplete="name" readonly title="Preenchido pelo Operador atual">
             </div>
             <div class="field">
               <label for="descricao">Descrição</label>
@@ -854,17 +927,22 @@
             <div class="field">
               <label for="previsaoEntrega">Previsão de entrega</label>
               <input id="previsaoEntrega" name="previsaoEntrega" type="date">
+              <div class="date-shortcuts">
+                <button type="button" class="light" onclick="setPrevisaoOffsetDays(1)">Amanhã</button>
+                <button type="button" class="light" onclick="setPrevisaoOffsetDays(2)">Depois de amanhã</button>
+                <button type="button" class="light" onclick="setPrevisaoOffsetDays(7)">Semana que vem</button>
+              </div>
             </div>
           </div>
 
           <div class="form-actions">
             <button id="save-button" type="submit">Salvar</button>
-            <button type="reset" class="light">Limpar</button>
+            <button type="button" id="form-modal-cancel" class="light">Cancelar</button>
           </div>
           <div id="form-status" class="status" aria-live="polite"></div>
         </form>
-      </section>
-    </main>
+      </div>
+    </div>
 
     <div id="toast-root" aria-live="polite"></div>
 
@@ -883,6 +961,8 @@
 
       const CHECKLIST_VIEW_FILTERS = ['todos', 'pendentes', 'feitos', 'na', 'feitos_hoje'];
 
+      const checklistObservationDrafts = Object.create(null);
+
       let dashboardData = parseInitialDataB64('<?= initialDataB64 ?>');
       let activeQueueFilter = 'pendentes';
       let activeChecklistFilter = 'todos';
@@ -893,7 +973,9 @@
       const openChecklistCategories = new Set();
       const openChecklistObservations = new Set();
 
-      const formPanel = document.getElementById('form-panel');
+      const formModalOverlay = document.getElementById('form-modal-overlay');
+      const formModalCloseBtn = document.getElementById('form-modal-close');
+      const formModalCancelBtn = document.getElementById('form-modal-cancel');
       const toggleFormBtn = document.getElementById('toggle-form-btn');
       const requestForm = document.getElementById('request-form');
       const categorySelect = document.getElementById('category');
@@ -931,6 +1013,18 @@
         }, 0);
       });
 
+      if (formModalCloseBtn) {
+        formModalCloseBtn.addEventListener('click', closeFormModal_);
+      }
+      if (formModalCancelBtn) {
+        formModalCancelBtn.addEventListener('click', closeFormModal_);
+      }
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && formModalOverlay && !formModalOverlay.classList.contains('hidden')) {
+          closeFormModal_();
+        }
+      });
+
       initOperadorBar_();
       updateMedicinePriceVisibility_();
 
@@ -949,6 +1043,10 @@
           } catch (err) {
             console.warn('Handover: localStorage indisponível.', err);
           }
+          syncAutorFieldFromOperador_();
+        });
+        operadorAtualInput.addEventListener('input', function () {
+          syncAutorFieldFromOperador_();
         });
       }
 
@@ -1285,12 +1383,19 @@
           };
 
           if (origem === 'Geral') {
+            var ht = String(item.Titulo || '').trim();
+            var hu = String(item.Urgencia || 'Normal').trim() || 'Normal';
             return Object.assign({}, base, {
               originLabel: 'Histórico · Geral',
               statusLabel: 'Resolvido',
               statusKey: 'historico_resolvido',
-              title: item.Descricao || 'Registro arquivado',
-              description: 'Autor: ' + (item.Autor || '-'),
+              title: ht || item.Descricao || 'Registro arquivado',
+              description:
+                'Autor: ' +
+                (item.Autor || '-') +
+                ' · Urgência: ' +
+                hu +
+                (ht ? ' · Descrição: ' + (item.Descricao || '-') : ''),
               person: item.Autor || '-',
               forecast: '',
               price: '',
@@ -1428,14 +1533,23 @@
       function buildWorkQueueItems(data) {
         const generalItems = (data.geral || []).map(function (item) {
           var audit = buildAuditMetaLine_(item);
+          var titulo = String(item.Titulo || '').trim();
+          var urg = String(item.Urgencia || 'Normal').trim() || 'Normal';
+          var titleLine = titulo || item.Descricao || 'Solicitação sem descrição';
+          var descLine =
+            'Autor: ' +
+            (item.Autor || '-') +
+            ' · Urgência: ' +
+            urg +
+            (titulo ? ' · Descrição: ' + (item.Descricao || '-') : '');
           return {
             id: item.ID,
             type: 'geral',
             originLabel: 'Solicitações',
             statusLabel: 'Pendente',
             statusKey: 'pendente',
-            title: item.Descricao || 'Solicitação sem descrição',
-            description: 'Autor: ' + (item.Autor || '-'),
+            title: titleLine,
+            description: descLine,
             person: item.Autor || '-',
             forecast: '',
             price: '',
@@ -1623,6 +1737,7 @@
       }
 
       function renderChecklistSection() {
+        captureObservationDraftsFromDom_();
         const checklist = dashboardData.checklistTurno;
         const items = checklist.items || [];
         const summary = checklist.summary || buildChecklistSummary_(items);
@@ -1703,6 +1818,43 @@
             );
           })
           .join('');
+        bindChecklistObservationDraftListeners_();
+      }
+
+      function captureObservationDraftsFromDom_() {
+        if (!checklistCategories) {
+          return;
+        }
+        checklistCategories.querySelectorAll('[data-check-obs-input]').forEach(function (el) {
+          var id = el.getAttribute('data-check-item-id');
+          if (id) {
+            checklistObservationDrafts[id] = el.value;
+          }
+        });
+      }
+
+      function bindChecklistObservationDraftListeners_() {
+        if (!checklistCategories) {
+          return;
+        }
+        checklistCategories.querySelectorAll('[data-check-obs-input]').forEach(function (input) {
+          input.addEventListener('input', function () {
+            var id = input.getAttribute('data-check-item-id');
+            if (id) {
+              checklistObservationDrafts[id] = input.value;
+            }
+          });
+        });
+      }
+
+      function getObservationValueForItem_(item) {
+        if (!item || !item.ID) {
+          return '';
+        }
+        if (Object.prototype.hasOwnProperty.call(checklistObservationDrafts, item.ID)) {
+          return checklistObservationDrafts[item.ID];
+        }
+        return item.Observacao || '';
       }
 
       function groupChecklistByCategory_(items) {
@@ -1795,7 +1947,8 @@
         const itemClass = 'check-item' + (isLate ? ' late' : '') + (isSaving ? ' syncing' : '');
         const observationInputId = buildChecklistObservationInputId_(item.ID);
         const showObservation = openChecklistObservations.has(item.ID);
-        const hasObservation = Boolean((item.Observacao || '').trim());
+        var obsDraftVal = getObservationValueForItem_(item);
+        const hasObservation = Boolean((obsDraftVal || '').trim());
         const checkInfo = item.Data_Hora_Check
           ? 'Última marcação: ' + formatDateTime(item.Data_Hora_Check)
           : 'Sem marcação';
@@ -1836,8 +1989,10 @@
             ? '<div class="obs-panel">' +
               '<input id="' +
               escapeAttribute(observationInputId) +
-              '" type="text" value="' +
-              escapeAttribute(item.Observacao || '') +
+              '" type="text" data-check-obs-input="1" data-check-item-id="' +
+              escapeAttribute(item.ID) +
+              '" value="' +
+              escapeAttribute(obsDraftVal) +
               '" placeholder="Observação do item">' +
               '<button type="button" class="light" onclick="saveChecklistObservation(\'' +
               escapeAttribute(item.ID) +
@@ -1967,6 +2122,7 @@
               checklistPendingItemId = null;
               applyChecklistPatch_(response);
               perfLog_('updateChecklistItemObservation', started);
+              delete checklistObservationDrafts[id];
               renderChecklistSection();
               renderSummary();
               setStatus(checklistStatus, 'Observação salva.');
@@ -2072,6 +2228,72 @@
         };
       }
 
+      function syncAutorFieldFromOperador_() {
+        var autorEl = document.getElementById('autor');
+        if (autorEl) {
+          autorEl.value = getOperadorAtual_();
+        }
+      }
+
+      function closeFormModal_() {
+        if (!formModalOverlay) {
+          return;
+        }
+        formModalOverlay.classList.add('hidden');
+        formModalOverlay.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        if (toggleFormBtn) {
+          toggleFormBtn.textContent = 'Novo registro';
+        }
+        requestForm.reset();
+        updateVisibleFields();
+        updateMedicinePriceVisibility_();
+        clearStatus(formStatus);
+      }
+
+      function openFormModal_() {
+        if (!formModalOverlay) {
+          return;
+        }
+        requestForm.reset();
+        updateVisibleFields();
+        updateMedicinePriceVisibility_();
+        syncAutorFieldFromOperador_();
+        clearStatus(formStatus);
+        formModalOverlay.classList.remove('hidden');
+        formModalOverlay.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        if (toggleFormBtn) {
+          toggleFormBtn.textContent = 'Fechar novo registro';
+        }
+        window.setTimeout(function () {
+          if (categorySelect.value === 'Medicamentos') {
+            var med = document.getElementById('medicamento');
+            if (med) {
+              med.focus();
+            }
+          } else {
+            var tg = document.getElementById('tituloGeral');
+            if (tg) {
+              tg.focus();
+            }
+          }
+        }, 0);
+      }
+
+      function setPrevisaoOffsetDays(days) {
+        var el = document.getElementById('previsaoEntrega');
+        if (!el) {
+          return;
+        }
+        var d = new Date();
+        d.setDate(d.getDate() + Number(days));
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        el.value = y + '-' + m + '-' + day;
+      }
+
       function updateVisibleFields() {
         const isMedication = categorySelect.value === 'Medicamentos';
         generalFields.classList.toggle('hidden', isMedication);
@@ -2081,9 +2303,14 @@
       }
 
       function toggleFormPanel() {
-        const willOpen = formPanel.classList.contains('hidden');
-        formPanel.classList.toggle('hidden', !willOpen);
-        toggleFormBtn.textContent = willOpen ? 'Fechar novo registro' : 'Novo registro';
+        if (!formModalOverlay) {
+          return;
+        }
+        if (formModalOverlay.classList.contains('hidden')) {
+          openFormModal_();
+        } else {
+          closeFormModal_();
+        }
       }
 
       function removeOptimisticPlaceholder_(optimisticId, tab) {
@@ -2107,6 +2334,7 @@
           setStatus(formStatus, 'Informe o operador atual no topo antes de salvar.', true);
           return;
         }
+        syncAutorFieldFromOperador_();
 
         const tab = categorySelect.value;
         const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
@@ -2139,6 +2367,8 @@
             Origem: 'Geral',
             Timestamp: new Date().toISOString(),
             Autor: payload.autor,
+            Titulo: payload.titulo,
+            Urgencia: payload.urgencia,
             Descricao: payload.descricao,
             Resolvido: false,
             Ultima_Acao_Por: operador,
@@ -2182,8 +2412,7 @@
               }
               perfLog_('saveData', started);
               renderAll();
-              requestForm.reset();
-              updateVisibleFields();
+              closeFormModal_();
               setStatus(formStatus, 'Registro salvo com sucesso.');
               setFormLoading_(false);
               saveButton.textContent = 'Salvar';
@@ -2219,6 +2448,8 @@
       function getGeneralPayload() {
         return {
           autor: document.getElementById('autor').value,
+          titulo: document.getElementById('tituloGeral').value,
+          urgencia: document.getElementById('urgenciaGeral').value,
           descricao: document.getElementById('descricao').value,
         };
       }
@@ -2238,7 +2469,8 @@
 
       function validatePayload(tab, payload) {
         if (tab === 'Geral') {
-          if (!payload.autor.trim()) return 'Informe o autor.';
+          if (!payload.autor.trim()) return 'Informe o autor (use Operador atual no topo).';
+          if (!payload.titulo.trim()) return 'Informe o título ou assunto.';
           if (!payload.descricao.trim()) return 'Informe a descrição.';
         }
 
@@ -2254,7 +2486,65 @@
       }
 
       function markPurchased(id) {
-        runQueueAction_('Marcando como comprado...', 'markAsPurchased', id);
+        var operador = ensureOperadorForCriticalAction_();
+        if (!operador) {
+          showToast_('Informe o operador atual antes desta ação.', true);
+          return;
+        }
+
+        var list = dashboardData.medicamentos || [];
+        var item = list.find(function (m) {
+          return m.ID === id;
+        });
+        if (!item || item.__syncState === 'syncing') {
+          return;
+        }
+
+        var snapshot = {
+          Comprado: item.Comprado,
+          Entregue: item.Entregue,
+          Status: item.Status,
+        };
+
+        item.Comprado = true;
+        item.Status = 'Comprado';
+        item.__syncState = 'syncing';
+
+        renderAll();
+        clearStatus(queueStatus);
+
+        var started = Date.now();
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              delete item.__syncState;
+              if (response.record) {
+                upsertMedicamento_(response.record);
+              }
+              perfLog_('markAsPurchased', started);
+              renderAll();
+              showToast_('Atualizado');
+              setStatus(queueStatus, 'Marcado como comprado.');
+            })
+            .withFailureHandler(function (error) {
+              item.Comprado = snapshot.Comprado;
+              item.Entregue = snapshot.Entregue;
+              item.Status = snapshot.Status;
+              delete item.__syncState;
+              renderAll();
+              setStatus(queueStatus, getErrorMessage(error), true);
+              showToast_(getErrorMessage(error), true);
+            })
+            .markAsPurchased(id, operador);
+        } catch (error) {
+          item.Comprado = snapshot.Comprado;
+          item.Entregue = snapshot.Entregue;
+          item.Status = snapshot.Status;
+          delete item.__syncState;
+          renderAll();
+          setStatus(queueStatus, error.message, true);
+          showToast_(error.message, true);
+        }
       }
 
       function markDelivered(id) {
