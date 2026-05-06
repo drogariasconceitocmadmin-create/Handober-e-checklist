@@ -1908,6 +1908,36 @@
         return 'hoje';
       }
 
+      /** Hora limite só para exibição no card (Sheets pode enviar ISO tipo 1899-12-30T22:34:00). */
+      function formatHoraVencimentoDisplay_(raw) {
+        if (raw == null) {
+          return '';
+        }
+        var s = String(raw).trim();
+        if (!s) {
+          return '';
+        }
+        var isoChunk = s.match(/T(\d{2}):(\d{2})/);
+        if (isoChunk) {
+          return isoChunk[1] + ':' + isoChunk[2];
+        }
+        var hmOnly = s.match(/^(\d{1,2}):(\d{2})(?::\d{2})?(?:\.\d+)?$/);
+        if (hmOnly) {
+          var h = String(Number(hmOnly[1])).padStart(2, '0');
+          var m = String(Number(hmOnly[2])).padStart(2, '0');
+          return h + ':' + m;
+        }
+        var d = new Date(s);
+        if (!Number.isNaN(d.getTime())) {
+          return (
+            String(d.getHours()).padStart(2, '0') +
+            ':' +
+            String(d.getMinutes()).padStart(2, '0')
+          );
+        }
+        return '';
+      }
+
       function formatGeralVencimentoCardLine_(item) {
         if (!temVencimentoGeralAtivo_(item)) {
           return '';
@@ -1916,8 +1946,8 @@
         if (!ds) {
           return '';
         }
-        var hora = String(item.Hora_Vencimento || '').trim();
-        var tail = hora ? ' ' + hora : '';
+        var horaFmt = formatHoraVencimentoDisplay_(item.Hora_Vencimento);
+        var tail = horaFmt ? ' ' + horaFmt : '';
         return 'Vence: ' + formatDateBrFromIso_(ds) + tail;
       }
 
