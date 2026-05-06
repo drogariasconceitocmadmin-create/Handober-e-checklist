@@ -215,6 +215,16 @@
         color: #1f2937;
       }
 
+      .badge.deadline-vencido {
+        background: var(--danger-bg);
+        color: var(--danger);
+      }
+
+      .badge.deadline-hoje {
+        background: #fef9c3;
+        color: #854d0e;
+      }
+
       button.light {
         background: #e5e7eb;
         color: var(--text);
@@ -494,10 +504,12 @@
 
       .obs-panel {
         display: flex;
+        flex-direction: column;
         gap: 6px;
         margin-top: 6px;
       }
 
+      .obs-panel textarea,
       .obs-panel input {
         border: 1px solid var(--border);
         border-radius: 8px;
@@ -505,6 +517,12 @@
         font-size: 12px;
         padding: 8px;
         width: 100%;
+        box-sizing: border-box;
+      }
+
+      .obs-panel textarea {
+        min-height: 4.5rem;
+        resize: vertical;
       }
 
       .obs-panel button {
@@ -894,7 +912,7 @@
 
         <div class="toolbar-actions" style="margin-bottom: 8px;">
           <button id="checklist-generate-btn" type="button" class="light" onclick="refreshChecklistToday()">
-            Atualizar visualização
+            Atualizar checklist
           </button>
         </div>
 
@@ -932,6 +950,20 @@
                 <option value="Urgente">Urgente</option>
               </select>
             </div>
+            <div class="checkbox-row field">
+              <input id="geral-tem-vencimento" name="geralTemVencimento" type="checkbox">
+              <label for="geral-tem-vencimento" style="margin:0;">Tem vencimento / prazo</label>
+            </div>
+            <div id="geral-vencimento-fields" class="hidden">
+              <div class="field">
+                <label for="geral-data-vencimento">Data de vencimento</label>
+                <input id="geral-data-vencimento" name="geralDataVencimento" type="date">
+              </div>
+              <div class="field">
+                <label for="geral-hora-vencimento">Hora limite (opcional)</label>
+                <input id="geral-hora-vencimento" name="geralHoraVencimento" type="time">
+              </div>
+            </div>
             <div class="field">
               <label for="autor">Autor</label>
               <input id="autor" name="autor" autocomplete="name" readonly title="Preenchido pelo Operador atual">
@@ -956,38 +988,40 @@
               <input id="medicamento" name="medicamento">
             </div>
 
-            <div class="field" id="preco-venda-field">
-              <label for="precoVenda">Preço de venda</label>
-              <input id="precoVenda" name="precoVenda" type="text" inputmode="decimal" placeholder="R$ 0,00">
-            </div>
-
-            <div class="checkbox-row field">
-              <input id="prePago" name="prePago" type="checkbox">
-              <label for="prePago" style="margin:0;">Pré-pago</label>
-            </div>
-
-            <div class="field">
-              <label for="cliente">Cliente</label>
-              <input id="cliente" name="cliente">
-            </div>
-
-            <div class="field">
-              <label for="telefone">Telefone</label>
-              <input id="telefone" name="telefone" placeholder="(11) 91234-5678">
-            </div>
-
             <div class="field">
               <label for="atendente">Atendente</label>
               <input id="atendente" name="atendente">
             </div>
 
-            <div class="field">
-              <label for="previsaoEntrega">Previsão de entrega</label>
-              <input id="previsaoEntrega" name="previsaoEntrega" type="date">
-              <div class="date-shortcuts">
-                <button type="button" class="light" onclick="setPrevisaoOffsetDays(1)">Amanhã</button>
-                <button type="button" class="light" onclick="setPrevisaoOffsetDays(2)">Depois de amanhã</button>
-                <button type="button" class="light" onclick="setPrevisaoOffsetDays(7)">Semana que vem</button>
+            <div class="field" id="preco-venda-field">
+              <label for="precoVenda">Preço de venda</label>
+              <input id="precoVenda" name="precoVenda" type="text" inputmode="decimal" placeholder="R$ 0,00">
+            </div>
+
+            <div id="med-encomenda-only">
+              <div class="checkbox-row field">
+                <input id="prePago" name="prePago" type="checkbox">
+                <label for="prePago" style="margin:0;">Pré-pago</label>
+              </div>
+
+              <div class="field">
+                <label for="cliente">Cliente</label>
+                <input id="cliente" name="cliente">
+              </div>
+
+              <div class="field">
+                <label for="telefone">Telefone</label>
+                <input id="telefone" name="telefone" placeholder="(11) 91234-5678">
+              </div>
+
+              <div class="field">
+                <label for="previsaoEntrega">Previsão de entrega</label>
+                <input id="previsaoEntrega" name="previsaoEntrega" type="date">
+                <div class="date-shortcuts">
+                  <button type="button" class="light" onclick="setPrevisaoOffsetDays(1)">Amanhã</button>
+                  <button type="button" class="light" onclick="setPrevisaoOffsetDays(2)">Depois de amanhã</button>
+                  <button type="button" class="light" onclick="setPrevisaoOffsetDays(7)">Semana que vem</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1122,14 +1156,50 @@
       ensureChecklistObservationDelegation_();
 
       categorySelect.addEventListener('change', updateVisibleFields);
+      var geralVcb = document.getElementById('geral-tem-vencimento');
+      if (geralVcb) {
+        geralVcb.addEventListener('change', toggleGeralVencimentoFields_);
+      }
       if (tipoSelect) {
         tipoSelect.addEventListener('change', updateMedicinePriceVisibility_);
       }
       requestForm.addEventListener('submit', handleSubmit);
+      requestForm.addEventListener('keydown', function (ev) {
+        if (ev.key !== 'Enter') {
+          return;
+        }
+        var tgt = ev.target;
+        var tag = tgt && tgt.tagName ? String(tgt.tagName).toLowerCase() : '';
+        if (tag === 'textarea') {
+          if (ev.shiftKey) {
+            return;
+          }
+          ev.preventDefault();
+          if (typeof requestForm.requestSubmit === 'function') {
+            requestForm.requestSubmit();
+          } else {
+            requestForm.submit();
+          }
+          return;
+        }
+        if (tag === 'button') {
+          return;
+        }
+        if (ev.shiftKey || ev.ctrlKey || ev.altKey || ev.metaKey) {
+          return;
+        }
+        ev.preventDefault();
+        if (typeof requestForm.requestSubmit === 'function') {
+          requestForm.requestSubmit();
+        } else {
+          requestForm.submit();
+        }
+      });
       requestForm.addEventListener('reset', function () {
         setTimeout(function () {
           updateVisibleFields();
           updateMedicinePriceVisibility_();
+          toggleGeralVencimentoFields_();
         }, 0);
       });
 
@@ -1521,17 +1591,70 @@
         ].join('\n');
       }
 
+      function syncMedicamentoAtendenteFromOperador_() {
+        if (!medicineFields || medicineFields.classList.contains('hidden')) {
+          return;
+        }
+        var el = document.getElementById('atendente');
+        if (!el) {
+          return;
+        }
+        el.value = getOperadorAtual_();
+      }
+
+      function toggleGeralVencimentoFields_() {
+        var cb = document.getElementById('geral-tem-vencimento');
+        var wrap = document.getElementById('geral-vencimento-fields');
+        if (!cb || !wrap) {
+          return;
+        }
+        var on = cb.checked;
+        wrap.classList.toggle('hidden', !on);
+        if (!on) {
+          var d = document.getElementById('geral-data-vencimento');
+          var h = document.getElementById('geral-hora-vencimento');
+          if (d) {
+            d.value = '';
+          }
+          if (h) {
+            h.value = '';
+          }
+        }
+      }
+
       function updateMedicinePriceVisibility_() {
-        if (!precoVendaField || !tipoSelect) {
+        if (!tipoSelect) {
           return;
         }
         var isFalta = String(tipoSelect.value || '').toLowerCase() === 'falta';
-        precoVendaField.classList.toggle('hidden', isFalta);
+        if (precoVendaField) {
+          precoVendaField.classList.toggle('hidden', isFalta);
+        }
         if (isFalta) {
           var pv = document.getElementById('precoVenda');
           if (pv) {
             pv.value = '';
           }
+          var pp = document.getElementById('prePago');
+          if (pp) {
+            pp.checked = false;
+          }
+          var cl = document.getElementById('cliente');
+          var tl = document.getElementById('telefone');
+          var prev = document.getElementById('previsaoEntrega');
+          if (cl) {
+            cl.value = '';
+          }
+          if (tl) {
+            tl.value = '';
+          }
+          if (prev) {
+            prev.value = '';
+          }
+        }
+        var encOnly = document.getElementById('med-encomenda-only');
+        if (encOnly) {
+          encOnly.classList.toggle('hidden', isFalta);
         }
       }
 
@@ -1745,6 +1868,96 @@
           return String(n).padStart(2, '0');
         };
         return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      }
+
+      function temVencimentoGeralAtivo_(item) {
+        return (
+          item.Tem_Vencimento === true ||
+          item.Tem_Vencimento === 'TRUE' ||
+          String(item.Tem_Vencimento || '').toLowerCase() === 'true'
+        );
+      }
+
+      function formatDateBrFromIso_(iso) {
+        var s = String(iso || '').substring(0, 10);
+        if (s.length !== 10) {
+          return s || '';
+        }
+        var p = s.split('-');
+        return p[2] + '/' + p[1] + '/' + p[0];
+      }
+
+      function computeVencimentoTierGeral_(item) {
+        if (item.Resolvido) {
+          return '';
+        }
+        if (!temVencimentoGeralAtivo_(item)) {
+          return '';
+        }
+        var ds = String(item.Data_Vencimento || '').substring(0, 10);
+        if (!ds || ds.length !== 10) {
+          return '';
+        }
+        var today = todayKeyLocal_();
+        if (ds > today) {
+          return '';
+        }
+        if (ds < today) {
+          return 'vencido';
+        }
+        return 'hoje';
+      }
+
+      function formatGeralVencimentoCardLine_(item) {
+        if (!temVencimentoGeralAtivo_(item)) {
+          return '';
+        }
+        var ds = String(item.Data_Vencimento || '').substring(0, 10);
+        if (!ds) {
+          return '';
+        }
+        var hora = String(item.Hora_Vencimento || '').trim();
+        var tail = hora ? ' ' + hora : '';
+        return 'Vence: ' + formatDateBrFromIso_(ds) + tail;
+      }
+
+      function computeVencimentoTierMedicamento_(item) {
+        if (item.Entregue) {
+          return '';
+        }
+        var statusTxtMed = String(item.Status || '')
+          .trim()
+          .toLowerCase();
+        if (statusTxtMed === 'resolvido parcialmente') {
+          return '';
+        }
+        var pv = String(item.Previsao_Entrega || '').trim().substring(0, 10);
+        if (!pv || pv.length !== 10) {
+          return '';
+        }
+        var tipo = medicationTipoFromRecord_(item);
+        if (tipo === 'falta') {
+          // só entra se legado trouxe previsão (campo preenchido)
+        }
+        var today = todayKeyLocal_();
+        if (pv > today) {
+          return '';
+        }
+        if (pv < today) {
+          return 'vencido';
+        }
+        return 'hoje';
+      }
+
+      function formatMedicamentoRevertLine_(item) {
+        if (!item.Revertido_Por) {
+          return '';
+        }
+        return (
+          'Revertido por ' +
+          item.Revertido_Por +
+          (item.Data_Reversao ? ' às ' + formatDateTime(item.Data_Reversao) : '')
+        );
       }
 
       function historicoTsDay_(item) {
@@ -2098,12 +2311,15 @@
           badges.unshift('<span class="badge">Resolvendo...</span>');
         }
 
-        if (item.isOverdue) {
-          badges.push('<span class="badge status-pendente">Atrasado/Hoje</span>');
+        if (item.vencidosTier === 'vencido') {
+          badges.push('<span class="badge deadline-vencido">Vencido</span>');
+        } else if (item.vencidosTier === 'hoje') {
+          badges.push('<span class="badge deadline-hoje">Hoje</span>');
         }
 
         const metaLines = [
           item.person ? 'Responsável/Cliente: ' + item.person : '',
+          item.deadlineLabel ? item.deadlineLabel : '',
           item.forecast ? 'Previsão: ' + item.forecast : '',
           item.price ? 'Preço de venda: ' + item.price : '',
           item.extraMeta || '',
@@ -2164,13 +2380,16 @@
           var titulo = geralQueueTitleFromItem_(item);
           var urg = geralQueueUrgenciaFromItem_(item);
           var titleLine = titulo;
+          var venTier = computeVencimentoTierGeral_(item);
+          var dlbl = formatGeralVencimentoCardLine_(item);
           var descLine =
             'Autor: ' +
             (item.Autor || '-') +
             ' · Urgência: ' +
             urg +
             ' · Descrição: ' +
-            (item.Descricao || '-');
+            (item.Descricao || '-') +
+            (dlbl ? ' · ' + dlbl : '');
           var resolving = item.__resolveState === 'resolving';
           var syncErr = item.__syncState === 'error';
           var pendingRetry = item.__pendingSave && syncErr;
@@ -2198,8 +2417,10 @@
             description: descLine,
             person: item.Autor || '-',
             forecast: '',
+            deadlineLabel: dlbl,
             price: '',
-            isOverdue: false,
+            isOverdue: venTier !== '',
+            vencidosTier: venTier,
             extraMeta: audit,
             syncState: item.__syncState || '',
             syncError: item.__syncError || '',
@@ -2245,6 +2466,18 @@
 
           const actions = [];
           if (!retryActionsMed) {
+            if (
+              item.__syncState !== 'syncing' &&
+              (status.key === 'comprado' ||
+                status.key === 'entregue' ||
+                status.key === 'resolvido_parcialmente')
+            ) {
+              actions.push({
+                label: 'Reverter para pendente',
+                handler: 'revertMedicationToPending_',
+                className: 'warning',
+              });
+            }
             if (!item.Comprado && item.__syncState !== 'syncing') {
               actions.push({
                 label: 'Marcar como comprado',
@@ -2271,6 +2504,9 @@
           }
 
           var auditMed = buildAuditMetaLine_(item);
+          var venTierM = computeVencimentoTierMedicamento_(item);
+          var tipoLow = medicationTipoFromRecord_(item);
+          var revLine = formatMedicamentoRevertLine_(item);
 
           return {
             id: item.ID,
@@ -2279,16 +2515,27 @@
             statusLabel: status.label,
             statusKey: status.key,
             title: item.Medicamento || 'Medicamento sem nome',
-            description: 'Tipo: ' + (item.Tipo || '-') + ' | Pré-pago: ' + (item.Pre_Pago ? 'Sim' : 'Não'),
-            person: item.Cliente ? item.Cliente + ' / ' + (item.Atendente || '-') : item.Atendente || '-',
+            description:
+              'Tipo: ' +
+              (item.Tipo || '-') +
+              (tipoLow === 'falta' ? '' : ' | Pré-pago: ' + (item.Pre_Pago ? 'Sim' : 'Não')),
+            person:
+              tipoLow === 'falta'
+                ? item.Atendente || '-'
+                : item.Cliente
+                ? item.Cliente + ' / ' + (item.Atendente || '-')
+                : item.Atendente || '-',
             forecast: item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '',
-            price: medicationTipoFromRecord_(item) === 'falta' ? '' : formatCurrencyBr_(item.Preco_Venda),
-            isOverdue: isOverdue(item),
+            deadlineLabel: '',
+            price: tipoLow === 'falta' ? '' : formatCurrencyBr_(item.Preco_Venda),
+            isOverdue: venTierM !== '',
+            vencidosTier: venTierM,
             extraMeta:
               (auditMed ? auditMed + ' | ' : '') +
+              (revLine ? revLine + ' | ' : '') +
               'Aviso WhatsApp: ' +
               (item.Status_Aviso_WhatsApp || 'Não registrado') +
-              (item.Telefone ? ' | Telefone: ' + item.Telefone : ''),
+              (tipoLow === 'falta' ? '' : item.Telefone ? ' | Telefone: ' + item.Telefone : ''),
             syncState: item.__syncState || '',
             syncError: item.__syncError || '',
             timeLabel: formatDateTime(item.Timestamp),
@@ -2333,7 +2580,7 @@
             });
           case 'vencidos_hoje':
             return items.filter(function (item) {
-              return item.type === 'medicamento' && item.isOverdue;
+              return item.isOverdue;
             });
           case 'resolvidos':
             return items;
@@ -2472,6 +2719,25 @@
           },
           true
         );
+        checklistCategories.addEventListener(
+          'keydown',
+          function (ev) {
+            var t = ev.target;
+            if (!t || t.getAttribute('data-check-obs-input') !== '1') {
+              return;
+            }
+            if (ev.key === 'Escape') {
+              ev.preventDefault();
+              cancelChecklistObservationEdit_(t.getAttribute('data-check-item-id'));
+              return;
+            }
+            if (ev.key === 'Enter' && !ev.shiftKey) {
+              ev.preventDefault();
+              saveChecklistObservation(t.getAttribute('data-check-item-id'), t.id);
+            }
+          },
+          true
+        );
       }
 
       function renderChecklistSummaryBarAndHints_() {
@@ -2494,7 +2760,7 @@
 
         if (items.length > 0) {
           checklistHint.textContent = 'Checklist de hoje já gerado.';
-          checklistGenerateBtn.textContent = 'Atualizar visualização';
+          checklistGenerateBtn.textContent = 'Atualizar checklist';
         } else {
           checklistHint.textContent = 'Checklist ainda não gerado.';
           checklistGenerateBtn.textContent = 'Gerar checklist de hoje';
@@ -2778,13 +3044,13 @@
         if (editing) {
           obsBlock =
             '<div class="obs-panel">' +
-            '<input id="' +
+            '<textarea id="' +
             escapeAttribute(observationInputId) +
-            '" type="text" data-check-obs-input="1" data-check-item-id="' +
+            '" rows="3" data-check-obs-input="1" data-check-item-id="' +
             escapeAttribute(item.ID) +
-            '" value="' +
-            escapeAttribute(draftVal) +
             '" placeholder="Observação do item">' +
+            escapeHtml(draftVal) +
+            '</textarea>' +
             '<div class="obs-edit-actions">' +
             '<button type="button" onclick="saveChecklistObservation(\'' +
             escapeAttribute(item.ID) +
@@ -3124,6 +3390,8 @@
         updateVisibleFields();
         updateMedicinePriceVisibility_();
         syncAutorFieldFromOperador_();
+        syncMedicamentoAtendenteFromOperador_();
+        toggleGeralVencimentoFields_();
         clearStatus(formStatus);
         formModalOverlay.classList.remove('hidden');
         formModalOverlay.setAttribute('aria-hidden', 'false');
@@ -3165,6 +3433,9 @@
         medicineFields.classList.toggle('hidden', !isMedication);
         clearStatus(formStatus);
         updateMedicinePriceVisibility_();
+        if (isMedication) {
+          syncMedicamentoAtendenteFromOperador_();
+        }
       }
 
       function toggleFormPanel() {
@@ -3261,6 +3532,19 @@
           document.getElementById('tituloGeral').value = pl.titulo || '';
           document.getElementById('urgenciaGeral').value = pl.urgencia || '';
           document.getElementById('descricao').value = pl.descricao || '';
+          var gcb = document.getElementById('geral-tem-vencimento');
+          if (gcb) {
+            gcb.checked = !!pl.temVencimento;
+          }
+          var gd = document.getElementById('geral-data-vencimento');
+          var gh = document.getElementById('geral-hora-vencimento');
+          if (gd) {
+            gd.value = pl.dataVencimento || '';
+          }
+          if (gh) {
+            gh.value = pl.horaVencimento || '';
+          }
+          toggleGeralVencimentoFields_();
         } else {
           document.getElementById('tipo').value = pl.tipo || '';
           document.getElementById('medicamento').value = pl.medicamento || '';
@@ -3324,6 +3608,9 @@
               Urgencia: payload.urgencia,
               Descricao: payload.descricao,
               Resolvido: false,
+              Tem_Vencimento: !!payload.temVencimento,
+              Data_Vencimento: payload.temVencimento ? payload.dataVencimento : '',
+              Hora_Vencimento: payload.temVencimento ? payload.horaVencimento : '',
               Ultima_Acao_Por: operador,
               __syncState: 'syncing',
               __pendingSave: pendingCtx,
@@ -3401,11 +3688,18 @@
       }
 
       function getGeneralPayload() {
+        var temVencCb = document.getElementById('geral-tem-vencimento');
+        var temVencimento = !!(temVencCb && temVencCb.checked);
+        var dv = document.getElementById('geral-data-vencimento');
+        var hv = document.getElementById('geral-hora-vencimento');
         return {
           autor: document.getElementById('autor').value,
           titulo: document.getElementById('tituloGeral').value,
           urgencia: document.getElementById('urgenciaGeral').value,
           descricao: document.getElementById('descricao').value,
+          temVencimento: temVencimento,
+          dataVencimento: temVencimento && dv ? dv.value : '',
+          horaVencimento: temVencimento && hv ? hv.value : '',
         };
       }
 
@@ -3427,14 +3721,23 @@
           if (!payload.autor.trim()) return 'Informe o autor (use Operador atual no topo).';
           if (!payload.titulo.trim()) return 'Informe o título ou assunto.';
           if (!payload.descricao.trim()) return 'Informe a descrição.';
+          if (payload.temVencimento) {
+            if (!String(payload.dataVencimento || '').trim()) {
+              return 'Informe a data de vencimento ou desmarque “Tem vencimento / prazo”.';
+            }
+          }
         }
 
         if (tab === 'Medicamentos') {
           if (!payload.medicamento.trim()) return 'Informe o medicamento.';
-          if (!payload.cliente.trim()) return 'Informe o cliente.';
-          if (!payload.telefone.trim()) return 'Informe o telefone do cliente.';
           if (!payload.atendente.trim()) return 'Informe o atendente.';
-          if (!payload.previsaoEntrega) return 'Informe a previsão de entrega.';
+          var tipoLowVal = String(payload.tipo || '').toLowerCase();
+          var isFaltaVal = tipoLowVal === 'falta';
+          if (!isFaltaVal) {
+            if (!payload.cliente.trim()) return 'Informe o cliente.';
+            if (!payload.telefone.trim()) return 'Informe o telefone do cliente.';
+            if (!payload.previsaoEntrega) return 'Informe a previsão de entrega.';
+          }
         }
 
         return '';
@@ -3490,6 +3793,84 @@
             item.Comprado = snapshot.Comprado;
             item.Entregue = snapshot.Entregue;
             item.Status = snapshot.Status;
+            delete item.__syncState;
+            renderAll();
+            setStatus(queueStatus, error.message, true);
+            showToast_(error.message, true);
+          }
+        });
+      }
+
+      function revertMedicationToPending_(id) {
+        if (
+          !window.confirm(
+            'Reverter este medicamento para pendente? O histórico anterior permanece na auditoria da linha.'
+          )
+        ) {
+          return;
+        }
+        runWithOperador_(function (operador) {
+          var list = dashboardData.medicamentos || [];
+          var item = list.find(function (m) {
+            return m.ID === id;
+          });
+          if (!item || item.__syncState === 'syncing') {
+            return;
+          }
+
+          var snapshot = {
+            Comprado: item.Comprado,
+            Entregue: item.Entregue,
+            Status: item.Status,
+            Revertido_Por: item.Revertido_Por,
+            Data_Reversao: item.Data_Reversao,
+            Status_Anterior: item.Status_Anterior,
+            Motivo_Reversao: item.Motivo_Reversao,
+          };
+
+          item.Comprado = false;
+          item.Entregue = false;
+          item.Status = 'Pendente';
+          item.__syncState = 'syncing';
+
+          renderAll();
+          clearStatus(queueStatus);
+
+          var started = Date.now();
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                delete item.__syncState;
+                if (response.record) {
+                  upsertMedicamento_(response.record);
+                }
+                perfLog_('revertMedicationToPending', started);
+                renderAll();
+                showToast_('Revertido para pendente');
+                setStatus(queueStatus, 'Medicamento revertido para pendente.');
+              })
+              .withFailureHandler(function (error) {
+                item.Comprado = snapshot.Comprado;
+                item.Entregue = snapshot.Entregue;
+                item.Status = snapshot.Status;
+                item.Revertido_Por = snapshot.Revertido_Por;
+                item.Data_Reversao = snapshot.Data_Reversao;
+                item.Status_Anterior = snapshot.Status_Anterior;
+                item.Motivo_Reversao = snapshot.Motivo_Reversao;
+                delete item.__syncState;
+                renderAll();
+                setStatus(queueStatus, getErrorMessage(error), true);
+                showToast_(getErrorMessage(error), true);
+              })
+              .revertMedicationToPending(id, operador, '');
+          } catch (error) {
+            item.Comprado = snapshot.Comprado;
+            item.Entregue = snapshot.Entregue;
+            item.Status = snapshot.Status;
+            item.Revertido_Por = snapshot.Revertido_Por;
+            item.Data_Reversao = snapshot.Data_Reversao;
+            item.Status_Anterior = snapshot.Status_Anterior;
+            item.Motivo_Reversao = snapshot.Motivo_Reversao;
             delete item.__syncState;
             renderAll();
             setStatus(queueStatus, error.message, true);
@@ -3770,17 +4151,6 @@
           style: 'currency',
           currency: 'BRL',
         });
-      }
-
-      function isOverdue(item) {
-        if (!item.Previsao_Entrega || item.Entregue) {
-          return false;
-        }
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const forecast = new Date(item.Previsao_Entrega + 'T00:00:00');
-        forecast.setHours(0, 0, 0, 0);
-        return today.getTime() >= forecast.getTime();
       }
 
       function parseDateTime_(value) {

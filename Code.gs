@@ -38,6 +38,9 @@ const HEADERS = {
     'Resolvido_Por',
     'Data_Resolucao',
     'ID_Reaberto_De',
+    'Tem_Vencimento',
+    'Data_Vencimento',
+    'Hora_Vencimento',
   ],
   Medicamentos: [
     'ID',
@@ -57,6 +60,10 @@ const HEADERS = {
     'Preco_Venda',
     'Ultima_Acao_Por',
     'Ultima_Acao_Em',
+    'Revertido_Por',
+    'Data_Reversao',
+    'Status_Anterior',
+    'Motivo_Reversao',
   ],
   Arquivo_Resolvidos: [
     'Origem',
@@ -90,6 +97,13 @@ const HEADERS = {
     'Data_Reabertura',
     'Motivo_Reabertura',
     'ID_Registro_Ativo',
+    'Tem_Vencimento',
+    'Data_Vencimento',
+    'Hora_Vencimento',
+    'Revertido_Por',
+    'Data_Reversao',
+    'Status_Anterior',
+    'Motivo_Reversao',
   ],
   Checklist_Turnos: [
     'ID',
@@ -165,7 +179,11 @@ function setupSpreadsheet() {
 
   Object.keys(HEADERS).forEach(function (sheetName) {
     const sheet = ss.getSheetByName(sheetName) || ss.insertSheet(sheetName);
-    if (sheetName === SHEET_NAMES.GERAL || sheetName === SHEET_NAMES.ARQUIVO) {
+    if (
+      sheetName === SHEET_NAMES.GERAL ||
+      sheetName === SHEET_NAMES.ARQUIVO ||
+      sheetName === SHEET_NAMES.MEDICAMENTOS
+    ) {
       ensureHeadersLegacyAdditive_(sheet, HEADERS[sheetName]);
     } else {
       ensureHeaders_(sheet, HEADERS[sheetName]);
@@ -602,6 +620,17 @@ function saveData(tab, data, operador) {
   const nowAcao = new Date();
 
   if (tab === SHEET_NAMES.GERAL) {
+    var temVenc = toBoolean_(data.temVencimento);
+    var dataVenCell = '';
+    var horaVenCell = '';
+    if (temVenc) {
+      var parsedVen = parseDate_(data.dataVencimento);
+      if (!parsedVen) {
+        throw new Error('Data de vencimento invalida. Use YYYY-MM-DD.');
+      }
+      dataVenCell = parsedVen;
+      horaVenCell = sanitizeText_(data.horaVencimento || '');
+    }
     const namedRow = {
       ID: id,
       Timestamp: timestamp,
@@ -615,6 +644,9 @@ function saveData(tab, data, operador) {
       Resolvido_Por: '',
       Data_Resolucao: '',
       ID_Reaberto_De: '',
+      Tem_Vencimento: temVenc,
+      Data_Vencimento: temVenc ? dataVenCell : '',
+      Hora_Vencimento: temVenc ? horaVenCell : '',
     };
     sheet.appendRow(buildAppendRowValuesFromNamedMap_(sheet, namedRow));
 
@@ -627,12 +659,53 @@ function saveData(tab, data, operador) {
 
   if (tab === SHEET_NAMES.MEDICAMENTOS) {
     const tipo = sanitizeText_(data.tipo);
-    const previsaoEntrega = parseDate_(data.previsaoEntrega);
     const isFalta = tipo.toLowerCase() === 'falta';
-    const precoVenda = isFalta ? '' : parseSalePrice_(data.precoVenda);
+
+    if (isFalta) {
+      if (!sanitizeText_(data.medicamento)) {
+        throw new Error('Informe o medicamento.');
+      }
+      if (!sanitizeText_(data.atendente)) {
+        throw new Error('Informe o atendente.');
+      }
+      var previsaoFalta = parseDate_(data.previsaoEntrega);
+      const rowValuesFalta = buildRowFromHeaders_(HEADERS.Medicamentos, {
+        ID: id,
+        Timestamp: timestamp,
+        Tipo: tipo,
+        Medicamento: sanitizeText_(data.medicamento),
+        Pre_Pago: false,
+        Cliente: '',
+        Atendente: sanitizeText_(data.atendente),
+        Previsao_Entrega: previsaoFalta || '',
+        Comprado: false,
+        Entregue: false,
+        Telefone: '',
+        Status: 'Pendente',
+        Status_Aviso_WhatsApp: '',
+        Data_Aviso_WhatsApp: '',
+        Preco_Venda: '',
+        Ultima_Acao_Por: op,
+        Ultima_Acao_Em: op ? nowAcao : '',
+        Revertido_Por: '',
+        Data_Reversao: '',
+        Status_Anterior: '',
+        Motivo_Reversao: '',
+      });
+      sheet.appendRow(rowValuesFalta);
+
+      Logger.log('saveData Medicamentos Falta ms=' + (Date.now() - started));
+      return {
+        success: true,
+        record: fetchMedicationRecordById_(id),
+      };
+    }
+
+    const previsaoEntrega = parseDate_(data.previsaoEntrega);
     if (!previsaoEntrega) {
       throw new Error('Previsao_Entrega invalida. Use o formato YYYY-MM-DD com data real.');
     }
+    const precoVenda = parseSalePrice_(data.precoVenda);
 
     const rowValues = buildRowFromHeaders_(HEADERS.Medicamentos, {
       ID: id,
@@ -652,6 +725,10 @@ function saveData(tab, data, operador) {
       Preco_Venda: precoVenda,
       Ultima_Acao_Por: op,
       Ultima_Acao_Em: op ? nowAcao : '',
+      Revertido_Por: '',
+      Data_Reversao: '',
+      Status_Anterior: '',
+      Motivo_Reversao: '',
     });
     sheet.appendRow(rowValues);
 
@@ -777,6 +854,74 @@ function markAsDelivered(id, operador) {
   };
 }
 
+function revertMedicationToPending(id, operador, motivo) {
+  const started = Date.now();
+  setupSpreadsheet();
+
+  var ctx = '[revertMedicationToPending] ID=' + sanitizeText_(id) + ' acao=reverter_medicamento ';
+  var op = sanitizeText_(operador);
+  if (!op) {
+    throw new Error(ctx + 'Operador obrigatorio.');
+  }
+
+  const location = findRowById_(SHEET_NAMES.MEDICAMENTOS, id);
+  if (!location) {
+    throw new Error(ctx + 'Medicamento nao encontrado.');
+  }
+
+  var sheet = location.sheet;
+  var rn = location.rowNumber;
+  var rowObj = rowToObjectFromSheetRow_(sheet, rn);
+  normalizeItemForClient_(rowObj);
+
+  var comprado = toBoolean_(rowObj.Comprado);
+  var entregue = toBoolean_(rowObj.Entregue);
+  var statusTxt = sanitizeText_(rowObj.Status).toLowerCase();
+
+  var precisaRevert =
+    comprado ||
+    entregue ||
+    statusTxt === 'resolvido parcialmente' ||
+    statusTxt === 'entregue' ||
+    statusTxt === 'comprado';
+
+  if (!precisaRevert) {
+    throw new Error(ctx + 'Este item ja esta pendente.');
+  }
+
+  var snapshot =
+    'Status:' +
+    sanitizeText_(rowObj.Status) +
+    '|Comprado:' +
+    comprado +
+    '|Entregue:' +
+    entregue;
+
+  sheet.getRange(rn, getColumnIndex_(sheet, 'Comprado')).setValue(false);
+  sheet.getRange(rn, getColumnIndex_(sheet, 'Entregue')).setValue(false);
+  syncMedicationStatus_(sheet, rn);
+
+  var statusColumn = getColumnIndex_(sheet, 'Status');
+  sheet.getRange(rn, statusColumn).setValue('Pendente');
+
+  try {
+    sheet.getRange(rn, getColumnIndex_(sheet, 'Revertido_Por')).setValue(op);
+    sheet.getRange(rn, getColumnIndex_(sheet, 'Data_Reversao')).setValue(new Date());
+    sheet.getRange(rn, getColumnIndex_(sheet, 'Status_Anterior')).setValue(snapshot);
+    sheet.getRange(rn, getColumnIndex_(sheet, 'Motivo_Reversao')).setValue(sanitizeText_(motivo));
+  } catch (auditErr) {
+    Logger.log('revertMedicationToPending audit cols: ' + auditErr);
+  }
+
+  writeMedicationUltimaAcao_(sheet, rn, op);
+
+  Logger.log('revertMedicationToPending ms=' + (Date.now() - started));
+  return {
+    success: true,
+    record: fetchMedicationRecordById_(id),
+  };
+}
+
 function markAsResolved(id, operador) {
   const started = Date.now();
   var ctx =
@@ -882,6 +1027,12 @@ function reopenHistoricoItem(archivedRecordId, operador, motivo) {
         Resolvido_Por: '',
         Data_Resolucao: '',
         ID_Reaberto_De: rid,
+        Tem_Vencimento: toBoolean_(archived.Tem_Vencimento),
+        Data_Vencimento:
+          archived.Data_Vencimento instanceof Date
+            ? archived.Data_Vencimento
+            : parseDate_(String(archived.Data_Vencimento || '')) || '',
+        Hora_Vencimento: sanitizeText_(archived.Hora_Vencimento || ''),
       };
       gsheet.appendRow(buildAppendRowValuesFromNamedMap_(gsheet, namedRow));
       writeArchiveReopenAudit_(loc.sheet, loc.rowNumber, op, mot, newId);
@@ -934,6 +1085,10 @@ function reopenHistoricoItem(archivedRecordId, operador, motivo) {
         Preco_Venda: precoMed,
         Ultima_Acao_Por: op,
         Ultima_Acao_Em: op ? new Date() : '',
+        Revertido_Por: '',
+        Data_Reversao: '',
+        Status_Anterior: '',
+        Motivo_Reversao: '',
       };
       msheet.appendRow(buildAppendRowValuesFromNamedMap_(msheet, namedMed));
       writeArchiveReopenAudit_(loc.sheet, loc.rowNumber, op, mot, newMedId);
@@ -1259,6 +1414,13 @@ function buildArchiveNamedValues_(sheetName, item) {
     Data_Reabertura: '',
     Motivo_Reabertura: '',
     ID_Registro_Ativo: '',
+    Tem_Vencimento: toBoolean_(item.Tem_Vencimento),
+    Data_Vencimento: item.Data_Vencimento || '',
+    Hora_Vencimento: sanitizeText_(item.Hora_Vencimento || ''),
+    Revertido_Por: sanitizeText_(item.Revertido_Por || ''),
+    Data_Reversao: item.Data_Reversao || '',
+    Status_Anterior: sanitizeText_(item.Status_Anterior || ''),
+    Motivo_Reversao: sanitizeText_(item.Motivo_Reversao || ''),
   };
 }
 
@@ -1284,7 +1446,7 @@ function findRowById_(sheetName, id) {
   }
 
   var idCol = getIdColumnIndexSafe_(sheet);
-  const ids = sheet.getRange(2, idCol, lastRow - 1, idCol).getValues();
+  const ids = sheet.getRange(2, idCol, lastRow, idCol).getValues();
 
   for (var index = 0; index < ids.length; index++) {
     if (ids[index][0] === id) {
@@ -1332,7 +1494,7 @@ function normalizeItemForClient_(item) {
       item[key] = Utilities.formatDate(
         item[key],
         Session.getScriptTimeZone(),
-        key === 'Previsao_Entrega' ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ss"
+        key === 'Previsao_Entrega' || key === 'Data_Vencimento' ? 'yyyy-MM-dd' : "yyyy-MM-dd'T'HH:mm:ss"
       );
     }
   });
@@ -1341,6 +1503,7 @@ function normalizeItemForClient_(item) {
   item.Comprado = toBoolean_(item.Comprado);
   item.Resolvido = toBoolean_(item.Resolvido);
   item.Entregue = toBoolean_(item.Entregue);
+  item.Tem_Vencimento = toBoolean_(item.Tem_Vencimento);
   item.Telefone = sanitizeText_(item.Telefone);
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
@@ -1866,6 +2029,10 @@ function selfTestSchemaGeralCompat_() {
     'Ultima_Acao_Em',
     'Resolvido_Por',
     'Data_Resolucao',
+    'ID_Reaberto_De',
+    'Tem_Vencimento',
+    'Data_Vencimento',
+    'Hora_Vencimento',
   ];
   if (missing.join('|') !== expectedMissing.join('|')) {
     failures.push('missing headers: ' + missing.join(',') + ' (esperado ' + expectedMissing.join(',') + ')');
