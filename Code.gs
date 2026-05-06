@@ -11,7 +11,11 @@ const HANDOVER_SPREADSHEET_TITLE = 'Handover Drogarias Conceito';
 const HANDOVER_TIMEZONE = 'America/Sao_Paulo';
 
 const CHECKLIST_TURNO_MANHA = 'Manhã';
+const CHECKLIST_TURNO_TARDE = 'Tarde';
+const CHECKLIST_TURNO_NOITE = 'Noite';
 const CHECKLIST_HORARIO_REFERENCIA = '07:00';
+const CHECKLIST_HORARIO_TARDE = '13:00';
+const CHECKLIST_HORARIO_NOITE = '21:00';
 const CHECKLIST_ALERT_HHMM = '07:30';
 
 const CHECKLIST_STATUS = {
@@ -33,6 +37,7 @@ const HEADERS = {
     'Ultima_Acao_Em',
     'Resolvido_Por',
     'Data_Resolucao',
+    'ID_Reaberto_De',
   ],
   Medicamentos: [
     'ID',
@@ -80,6 +85,11 @@ const HEADERS = {
     'Data_Resolucao',
     'Titulo',
     'Urgencia',
+    'Estado_Arquivo',
+    'Reaberto_Por',
+    'Data_Reabertura',
+    'Motivo_Reabertura',
+    'ID_Registro_Ativo',
   ],
   Checklist_Turnos: [
     'ID',
@@ -285,14 +295,62 @@ function getChecklistTemplateOrderMap_() {
   }, {});
 }
 
+function sanitizeChecklistTurno_(value) {
+  var label = sanitizeText_(value);
+  if (label === CHECKLIST_TURNO_TARDE) {
+    return CHECKLIST_TURNO_TARDE;
+  }
+  if (label === CHECKLIST_TURNO_NOITE) {
+    return CHECKLIST_TURNO_NOITE;
+  }
+  return CHECKLIST_TURNO_MANHA;
+}
+
+function horarioReferenciaForTurno_(turno) {
+  var t = sanitizeChecklistTurno_(turno);
+  if (t === CHECKLIST_TURNO_TARDE) {
+    return CHECKLIST_HORARIO_TARDE;
+  }
+  if (t === CHECKLIST_TURNO_NOITE) {
+    return CHECKLIST_HORARIO_NOITE;
+  }
+  return CHECKLIST_HORARIO_REFERENCIA;
+}
+
+function inferDefaultChecklistTurno_() {
+  var hourText = Utilities.formatDate(new Date(), HANDOVER_TIMEZONE, 'HH');
+  var hour = Number(hourText);
+  if (hour >= 5 && hour < 13) {
+    return CHECKLIST_TURNO_MANHA;
+  }
+  if (hour >= 13 && hour < 21) {
+    return CHECKLIST_TURNO_TARDE;
+  }
+  return CHECKLIST_TURNO_NOITE;
+}
+
+function checklistSummaryForItemContext_(checklistItem) {
+  var dateKey = getChecklistDateKey_();
+  var turno =
+    checklistItem && checklistItem.Turno
+      ? sanitizeChecklistTurno_(checklistItem.Turno)
+      : CHECKLIST_TURNO_MANHA;
+  return getChecklistSummary_(fetchChecklistItems_(dateKey, turno));
+}
+
 function ensureTodayMorningChecklist_() {
+  return ensureTodayChecklistForTurno_(CHECKLIST_TURNO_MANHA);
+}
+
+function ensureTodayChecklistForTurno_(turnoParam) {
   const ss = getSpreadsheet_();
   const sheet = getSheetOrThrow_(ss, SHEET_NAMES.CHECKLIST);
   const lastCol = Math.max(sheet.getLastColumn(), 1);
   const headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const template = getChecklistTemplate_();
   const dateKey = getChecklistDateKey_();
-  const turno = CHECKLIST_TURNO_MANHA;
+  const turno = sanitizeChecklistTurno_(turnoParam);
+  const horarioRef = horarioReferenciaForTurno_(turno);
   const identityPrefix = buildChecklistIdentityKey_(dateKey) + '|' + buildChecklistIdentityKey_(turno);
 
   const existingKeys = new Set();
@@ -330,7 +388,7 @@ function ensureTodayMorningChecklist_() {
       Utilities.getUuid(),
       dateKey,
       turno,
-      CHECKLIST_HORARIO_REFERENCIA,
+      horarioRef,
       sanitizeText_(templateItem.categoria),
       sanitizeText_(templateItem.item),
       sanitizeText_(templateItem.descricao),
@@ -368,7 +426,7 @@ function fetchChecklistItems_(dateKey, turno) {
   const lastCol = Math.max(sheet.getLastColumn(), 1);
   const headerCells = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   const filterDateKey = dateKey || getChecklistDateKey_();
-  const filterTurno = turno || CHECKLIST_TURNO_MANHA;
+  const filterTurno = sanitizeChecklistTurno_(turno || CHECKLIST_TURNO_MANHA);
 
   if (sheet.getLastRow() <= 1) {
     return [];
@@ -454,7 +512,7 @@ function updateChecklistItemStatus(id, status, responsavel) {
   return {
     success: true,
     checklistItem: updatedItem,
-    checklistSummary: getChecklistSummary_(fetchChecklistItemsForToday_()),
+    checklistSummary: checklistSummaryForItemContext_(updatedItem),
   };
 }
 
@@ -480,28 +538,49 @@ function updateChecklistItemObservation(id, observacao, responsavel) {
   return {
     success: true,
     checklistItem: updatedItem,
-    checklistSummary: getChecklistSummary_(fetchChecklistItemsForToday_()),
+    checklistSummary: checklistSummaryForItemContext_(updatedItem),
   };
 }
 
 function generateTodayMorningChecklist() {
+  return generateChecklistForTurno(CHECKLIST_TURNO_MANHA);
+}
+
+function generateChecklistForTurno(turno) {
   setupSpreadsheet();
-  ensureTodayMorningChecklist_();
+  ensureTodayChecklistForTurno_(turno);
   return {
     success: true,
-    checklistTurno: buildChecklistTurnoPayload_(),
+    checklistTurno: buildChecklistTurnoPayload_(turno),
   };
 }
 
-function buildChecklistTurnoPayload_() {
-  const checklistContext = ensureTodayMorningChecklist_();
-  const checklistItems = fetchChecklistItems_(checklistContext.dateKey, checklistContext.turno);
+function refreshDashboardBundle(checklistTurnoOpt) {
+  setupSpreadsheet();
+  var turno = sanitizeChecklistTurno_(checklistTurnoOpt || inferDefaultChecklistTurno_());
+  return {
+    geral: fetchSheetItems_(SHEET_NAMES.GERAL).filter(function (item) {
+      return !item.Resolvido;
+    }),
+    medicamentos: fetchSheetItems_(SHEET_NAMES.MEDICAMENTOS),
+    checklistTurno: buildChecklistTurnoPayload_(turno),
+    bundleTurno: turno,
+  };
+}
+
+function buildChecklistTurnoPayload_(turnoOpt) {
+  var turno = sanitizeChecklistTurno_(turnoOpt || inferDefaultChecklistTurno_());
+  var checklistContext = ensureTodayChecklistForTurno_(turno);
+  var checklistItems = fetchChecklistItems_(checklistContext.dateKey, checklistContext.turno);
+  var horarioRef = horarioReferenciaForTurno_(turno);
+  var deadline =
+    turno === CHECKLIST_TURNO_MANHA && isAfterMorningDeadline_(checklistContext.dateKey);
 
   return {
     data: checklistContext.dateKey,
     turno: checklistContext.turno,
-    horarioReferencia: CHECKLIST_HORARIO_REFERENCIA,
-    isAfterDeadline: isAfterMorningDeadline_(checklistContext.dateKey),
+    horarioReferencia: horarioRef,
+    isAfterDeadline: deadline,
     items: checklistItems,
     summary: getChecklistSummary_(checklistItems),
   };
@@ -535,6 +614,7 @@ function saveData(tab, data, operador) {
       Ultima_Acao_Em: op ? nowAcao : '',
       Resolvido_Por: '',
       Data_Resolucao: '',
+      ID_Reaberto_De: '',
     };
     sheet.appendRow(buildAppendRowValuesFromNamedMap_(sheet, namedRow));
 
@@ -606,7 +686,7 @@ function fetchData() {
       return !item.Resolvido;
     }),
     medicamentos: fetchSheetItems_(SHEET_NAMES.MEDICAMENTOS),
-    checklistTurno: buildChecklistTurnoPayload_(),
+    checklistTurno: buildChecklistTurnoPayload_(inferDefaultChecklistTurno_()),
   };
 }
 
@@ -631,7 +711,7 @@ function fetchHistoricoResolvidos(limit) {
   if (isNaN(lim) || lim < 1) {
     lim = 80;
   }
-  lim = Math.min(Math.max(lim, 1), 200);
+  lim = Math.min(Math.max(lim, 1), 350);
 
   const firstRow = Math.max(2, lastRow - lim + 1);
   const numRows = lastRow - firstRow + 1;
@@ -699,32 +779,179 @@ function markAsDelivered(id, operador) {
 
 function markAsResolved(id, operador) {
   const started = Date.now();
-  setupSpreadsheet();
+  var ctx =
+    '[markAsResolved] ID=' +
+    sanitizeText_(id) +
+    ' aba=' +
+    SHEET_NAMES.GERAL +
+    ' acao=arquivar status=';
+  try {
+    setupSpreadsheet();
 
-  const location = findRowById_(SHEET_NAMES.GERAL, id);
-  if (!location) {
-    throw new Error('Solicitacao geral nao encontrada: ' + id);
+    const location = findRowById_(SHEET_NAMES.GERAL, id);
+    if (!location) {
+      throw new Error(
+        'Solicitacao geral nao encontrada (verifique se o ID ainda esta na aba Geral e nao foi arquivado).'
+      );
+    }
+
+    const sheet = location.sheet;
+    const rowNumber = location.rowNumber;
+    const op = sanitizeText_(operador);
+    const now = new Date();
+
+    sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Ultima_Acao_Por')).setValue(op);
+    sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Ultima_Acao_Em')).setValue(now);
+    sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Resolvido_Por')).setValue(op);
+    sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Data_Resolucao')).setValue(now);
+
+    const resolvidoColumn = getColumnIndex_(sheet, 'Resolvido');
+    sheet.getRange(rowNumber, resolvidoColumn).setValue(true);
+    moveRowToResolved(SHEET_NAMES.GERAL, rowNumber);
+
+    Logger.log('markAsResolved ms=' + (Date.now() - started));
+    return {
+      success: true,
+      removedId: id,
+    };
+  } catch (error) {
+    throw new Error(ctx + 'erro mensagem=' + error.message);
+  }
+}
+
+function writeArchiveReopenAudit_(archiveSheet, rowNumber, operador, motivo, novoIdAtivo) {
+  archiveSheet.getRange(rowNumber, getColumnIndex_(archiveSheet, 'Estado_Arquivo')).setValue('Reaberto');
+  archiveSheet.getRange(rowNumber, getColumnIndex_(archiveSheet, 'Reaberto_Por')).setValue(sanitizeText_(operador));
+  archiveSheet.getRange(rowNumber, getColumnIndex_(archiveSheet, 'Data_Reabertura')).setValue(new Date());
+  archiveSheet.getRange(rowNumber, getColumnIndex_(archiveSheet, 'Motivo_Reabertura')).setValue(sanitizeText_(motivo));
+  archiveSheet
+    .getRange(rowNumber, getColumnIndex_(archiveSheet, 'ID_Registro_Ativo'))
+    .setValue(sanitizeText_(novoIdAtivo));
+}
+
+function reopenHistoricoItem(archivedRecordId, operador, motivo) {
+  const started = Date.now();
+  var rid = sanitizeText_(archivedRecordId);
+  var op = sanitizeText_(operador);
+  var mot = sanitizeText_(motivo);
+  var ctx = '[reopenHistoricoItem] ID=' + rid + ' aba=' + SHEET_NAMES.ARQUIVO + ' acao=reabrir ';
+  if (!rid) {
+    throw new Error(ctx + 'Registro sem ID.');
+  }
+  if (!op) {
+    throw new Error(ctx + 'Operador obrigatorio.');
   }
 
-  const sheet = location.sheet;
-  const rowNumber = location.rowNumber;
-  const op = sanitizeText_(operador);
-  const now = new Date();
+  try {
+    setupSpreadsheet();
 
-  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Ultima_Acao_Por')).setValue(op);
-  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Ultima_Acao_Em')).setValue(now);
-  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Resolvido_Por')).setValue(op);
-  sheet.getRange(rowNumber, getColumnIndex_(sheet, 'Data_Resolucao')).setValue(now);
+    var loc = findRowById_(SHEET_NAMES.ARQUIVO, rid);
+    if (!loc) {
+      throw new Error('Linha do arquivo nao encontrada para este ID.');
+    }
 
-  const resolvidoColumn = getColumnIndex_(sheet, 'Resolvido');
-  sheet.getRange(rowNumber, resolvidoColumn).setValue(true);
-  moveRowToResolved(SHEET_NAMES.GERAL, rowNumber);
+    var archived = rowToObjectFromSheetRow_(loc.sheet, loc.rowNumber);
+    var estado = sanitizeText_(archived.Estado_Arquivo || 'Resolvido');
+    if (estado === 'Reaberto') {
+      throw new Error(
+        'Este registro ja foi reaberto. ID ativo vinculado: ' + sanitizeText_(archived.ID_Registro_Ativo || '-')
+      );
+    }
 
-  Logger.log('markAsResolved ms=' + (Date.now() - started));
-  return {
-    success: true,
-    removedId: id,
-  };
+    var origem = sanitizeText_(archived.Origem);
+    var ss = getSpreadsheet_();
+
+    if (origem === SHEET_NAMES.GERAL || origem === 'Geral') {
+      var gsheet = getSheetOrThrow_(ss, SHEET_NAMES.GERAL);
+      var newId = Utilities.getUuid();
+      var now = new Date();
+      var namedRow = {
+        ID: newId,
+        Timestamp: now,
+        Autor: sanitizeText_(archived.Autor),
+        Titulo: sanitizeText_(archived.Titulo || archived.Assunto || ''),
+        Urgencia: normalizeUrgenciaGeral_(archived.Urgencia || ''),
+        Descricao: sanitizeText_(
+          archived.Descricao !== undefined && archived.Descricao !== null && archived.Descricao !== ''
+            ? archived.Descricao
+            : archived['Descrição'] || ''
+        ),
+        Resolvido: false,
+        Ultima_Acao_Por: op,
+        Ultima_Acao_Em: now,
+        Resolvido_Por: '',
+        Data_Resolucao: '',
+        ID_Reaberto_De: rid,
+      };
+      gsheet.appendRow(buildAppendRowValuesFromNamedMap_(gsheet, namedRow));
+      writeArchiveReopenAudit_(loc.sheet, loc.rowNumber, op, mot, newId);
+
+      Logger.log('reopenHistoricoItem Geral ms=' + (Date.now() - started));
+      return {
+        success: true,
+        tipo: 'Geral',
+        record: fetchGeralRecordById_(newId),
+        arquivoId: rid,
+        novoId: newId,
+      };
+    }
+
+    if (origem === SHEET_NAMES.MEDICAMENTOS || origem === 'Medicamentos') {
+      var msheet = getSheetOrThrow_(ss, SHEET_NAMES.MEDICAMENTOS);
+      var newMedId = Utilities.getUuid();
+      var tipoMed = sanitizeText_(archived.Tipo) || 'Encomenda';
+      var previsaoMed = parseDate_(String(archived.Previsao_Entrega || ''));
+      if (!previsaoMed) {
+        previsaoMed = new Date();
+      }
+      var faltaMed = tipoMed.toLowerCase() === 'falta';
+      var precoMed = '';
+      if (!faltaMed) {
+        try {
+          precoMed =
+            archived.Preco_Venda === '' || archived.Preco_Venda === null || archived.Preco_Venda === undefined
+              ? ''
+              : parseSalePrice_(archived.Preco_Venda);
+        } catch (priceErr) {
+          precoMed = '';
+        }
+      }
+      var namedMed = {
+        ID: newMedId,
+        Timestamp: new Date(),
+        Tipo: tipoMed,
+        Medicamento: sanitizeText_(archived.Medicamento),
+        Pre_Pago: toBoolean_(archived.Pre_Pago),
+        Cliente: sanitizeText_(archived.Cliente),
+        Atendente: sanitizeText_(archived.Atendente),
+        Previsao_Entrega: previsaoMed,
+        Comprado: false,
+        Entregue: false,
+        Telefone: sanitizeText_(archived.Telefone),
+        Status: 'Pendente',
+        Status_Aviso_WhatsApp: '',
+        Data_Aviso_WhatsApp: '',
+        Preco_Venda: precoMed,
+        Ultima_Acao_Por: op,
+        Ultima_Acao_Em: op ? new Date() : '',
+      };
+      msheet.appendRow(buildAppendRowValuesFromNamedMap_(msheet, namedMed));
+      writeArchiveReopenAudit_(loc.sheet, loc.rowNumber, op, mot, newMedId);
+
+      Logger.log('reopenHistoricoItem Medicamentos ms=' + (Date.now() - started));
+      return {
+        success: true,
+        tipo: 'Medicamentos',
+        record: fetchMedicationRecordById_(newMedId),
+        arquivoId: rid,
+        novoId: newMedId,
+      };
+    }
+
+    throw new Error('Origem nao suportada para reabertura: ' + origem);
+  } catch (error) {
+    throw new Error(ctx + 'erro mensagem=' + error.message);
+  }
 }
 
 function moveRowToResolved(sheetName, rowNumber) {
@@ -1027,12 +1254,25 @@ function buildArchiveNamedValues_(sheetName, item) {
     Ultima_Acao_Em: item.Ultima_Acao_Em || '',
     Resolvido_Por: sanitizeText_(item.Resolvido_Por || ''),
     Data_Resolucao: item.Data_Resolucao || '',
+    Estado_Arquivo: 'Resolvido',
+    Reaberto_Por: '',
+    Data_Reabertura: '',
+    Motivo_Reabertura: '',
+    ID_Registro_Ativo: '',
   };
 }
 
 function appendArchiveNamedRow_(archiveSheet, sheetName, sourceObject) {
   var archiveNamed = buildArchiveNamedValues_(sheetName, sourceObject);
   archiveSheet.appendRow(buildAppendRowValuesFromNamedMap_(archiveSheet, archiveNamed));
+}
+
+function getIdColumnIndexSafe_(sheet) {
+  try {
+    return getColumnIndex_(sheet, 'ID');
+  } catch (error) {
+    return 1;
+  }
 }
 
 function findRowById_(sheetName, id) {
@@ -1043,7 +1283,8 @@ function findRowById_(sheetName, id) {
     return null;
   }
 
-  const ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var idCol = getIdColumnIndexSafe_(sheet);
+  const ids = sheet.getRange(2, idCol, lastRow - 1, idCol).getValues();
 
   for (var index = 0; index < ids.length; index++) {
     if (ids[index][0] === id) {
@@ -1104,6 +1345,10 @@ function normalizeItemForClient_(item) {
   item.Status = sanitizeText_(item.Status) || deriveMedicationStatus_(item);
   item.Status_Aviso_WhatsApp = sanitizeText_(item.Status_Aviso_WhatsApp);
   item.Preco_Venda = normalizeSalePriceForClient_(item.Preco_Venda);
+
+  if (sanitizeText_(item.Arquivado_Em)) {
+    item.Estado_Arquivo = sanitizeText_(item.Estado_Arquivo) || 'Resolvido';
+  }
 
   if (isGeralLikeRecord_(item)) {
     normalizeGeralAliases_(item);

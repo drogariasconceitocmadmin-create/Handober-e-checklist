@@ -144,6 +144,47 @@
         color: #1e3a8a;
       }
 
+      #historico-filters-panel {
+        margin-bottom: 10px;
+      }
+
+      .historico-filters-inner {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+      }
+
+      .historico-filters-inner .filter-row {
+        margin-bottom: 8px;
+      }
+
+      .card-inline-error {
+        margin-top: 8px;
+        padding: 8px;
+        background: var(--danger-bg);
+        color: var(--danger);
+        border-radius: 8px;
+        font-size: 13px;
+      }
+
+      .obs-readonly {
+        margin-top: 8px;
+        padding: 8px 10px;
+        background: #f9fafb;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+
+      .obs-edit-actions {
+        margin-top: 6px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
       .toolbar-actions {
         display: flex;
         flex-wrap: wrap;
@@ -723,6 +764,13 @@
 
       <section id="operation-summary" class="summary-grid"></section>
 
+      <section class="card sync-bar-row" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <span id="last-sync-label" class="sync-label">Última atualização: --</span>
+        <button type="button" id="refresh-dashboard-btn" class="light" onclick="refreshDashboardNow_()">
+          Atualizar agora
+        </button>
+      </section>
+
       <section class="card operador-bar" style="margin-top: 10px;">
         <div class="field">
           <label for="operador-atual">Operador atual</label>
@@ -791,6 +839,7 @@
       <section class="card" style="margin-top: 10px;">
         <h2 class="queue-title">Pendências operacionais</h2>
         <p id="queue-subtitle" class="queue-subtitle"></p>
+        <div id="historico-filters-panel" class="historico-filters hidden"></div>
         <div id="queue-list" class="queue-list"></div>
         <div id="queue-empty" class="empty-box hidden">Nenhuma pendência para o filtro selecionado.</div>
         <div id="queue-status" class="status" aria-live="polite"></div>
@@ -798,7 +847,15 @@
 
       <section class="card" style="margin-top: 10px;">
         <div class="checklist-top">
-          <h2 class="section-title">Checklist do Turno</h2>
+          <h2 class="section-title" id="checklist-turn-title">Checklist do turno</h2>
+          <div class="field checklist-turn-field">
+            <label for="checklist-turno-select">Turno</label>
+            <select id="checklist-turno-select" onchange="onChecklistTurnoChange_(this.value)">
+              <option value="Manhã">Manhã</option>
+              <option value="Tarde">Tarde</option>
+              <option value="Noite">Noite</option>
+            </select>
+          </div>
           <button id="checklist-toggle-btn" type="button" class="light" onclick="toggleChecklistPanel()">
             Abrir checklist
           </button>
@@ -944,6 +1001,45 @@
       </div>
     </div>
 
+    <div
+      id="operador-required-overlay"
+      class="modal-overlay hidden"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog card" role="dialog" aria-modal="true" aria-labelledby="operador-modal-title">
+        <div class="modal-head">
+          <h2 id="operador-modal-title">Informe o operador atual</h2>
+        </div>
+        <div class="field">
+          <label for="operador-modal-input">Nome</label>
+          <input id="operador-modal-input" type="text" autocomplete="name" placeholder="Nome do operador">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="light" onclick="cancelOperadorRequiredModal_()">Cancelar</button>
+          <button type="button" onclick="confirmOperadorRequiredModal_()">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="reopen-confirm-overlay" class="modal-overlay hidden" aria-hidden="true">
+      <div class="modal-dialog card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+          <h2 id="reopen-modal-title">Reabrir registro</h2>
+        </div>
+        <p class="muted" id="reopen-modal-desc">
+          O item será recriado como pendência e o histórico mantém a trilha de quem resolveu e quem reabriu.
+        </p>
+        <div class="field">
+          <label for="reopen-motivo-input">Motivo (opcional)</label>
+          <input id="reopen-motivo-input" type="text" placeholder="Ex.: cliente voltou à loja">
+        </div>
+        <div class="form-actions">
+          <button type="button" class="light" onclick="cancelReopenHistoricoModal_()">Cancelar</button>
+          <button type="button" onclick="confirmReopenHistoricoModal_()">Confirmar reabertura</button>
+        </div>
+      </div>
+    </div>
+
     <div id="toast-root" aria-live="polite"></div>
 
     <script>
@@ -971,7 +1067,23 @@
       let checklistPendingItemId = null;
       let isChecklistExpanded = false;
       const openChecklistCategories = new Set();
-      const openChecklistObservations = new Set();
+      const checklistObservationEditMode = new Set();
+
+      let pendingOperadorCallback_ = null;
+      let activeChecklistTurno =
+        dashboardData.checklistTurno && dashboardData.checklistTurno.turno
+          ? dashboardData.checklistTurno.turno
+          : 'Manhã';
+      let pendingReopenHistoricoId = null;
+      let historicoFilterState = {
+        criados: 'todos',
+        resolucao: 'todos',
+        operador: '',
+        categoria: 'todos',
+        estado: 'todos',
+      };
+      let dashboardAutoRefreshTimer = null;
+      let lastDashboardSyncTs = Date.now();
 
       const formModalOverlay = document.getElementById('form-modal-overlay');
       const formModalCloseBtn = document.getElementById('form-modal-close');
@@ -1000,6 +1112,12 @@
       const checklistStatus = document.getElementById('checklist-status');
       const checklistGenerateBtn = document.getElementById('checklist-generate-btn');
       const operadorAtualInput = document.getElementById('operador-atual');
+      const operadorRequiredOverlay = document.getElementById('operador-required-overlay');
+      const operadorModalInput = document.getElementById('operador-modal-input');
+      const reopenConfirmOverlay = document.getElementById('reopen-confirm-overlay');
+      const historicoFiltersPanel = document.getElementById('historico-filters-panel');
+      const checklistTurnSelect = document.getElementById('checklist-turno-select');
+      const checklistTurnTitleEl = document.getElementById('checklist-turn-title');
 
       ensureChecklistObservationDelegation_();
 
@@ -1022,13 +1140,311 @@
         formModalCancelBtn.addEventListener('click', closeFormModal_);
       }
       document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && formModalOverlay && !formModalOverlay.classList.contains('hidden')) {
+        if (event.key !== 'Escape') {
+          return;
+        }
+        if (formModalOverlay && !formModalOverlay.classList.contains('hidden')) {
           closeFormModal_();
+          return;
+        }
+        if (operadorRequiredOverlay && !operadorRequiredOverlay.classList.contains('hidden')) {
+          cancelOperadorRequiredModal_();
         }
       });
 
       initOperadorBar_();
       updateMedicinePriceVisibility_();
+      initChecklistTurnoUi_();
+      initDashboardSync_();
+
+      function runWithOperador_(fn) {
+        var op = getOperadorAtual_();
+        if (op) {
+          fn(op);
+          return;
+        }
+        pendingOperadorCallback_ = fn;
+        if (operadorModalInput) {
+          operadorModalInput.value = '';
+        }
+        if (operadorRequiredOverlay) {
+          operadorRequiredOverlay.classList.remove('hidden');
+          operadorRequiredOverlay.setAttribute('aria-hidden', 'false');
+          window.setTimeout(function () {
+            if (operadorModalInput) {
+              operadorModalInput.focus();
+            }
+          }, 50);
+        }
+      }
+
+      function confirmOperadorRequiredModal_() {
+        var v = operadorModalInput ? String(operadorModalInput.value || '').trim() : '';
+        if (!v) {
+          showToast_('Informe um nome para continuar.', true);
+          return;
+        }
+        if (operadorAtualInput) {
+          operadorAtualInput.value = v;
+        }
+        try {
+          localStorage.setItem(OPERADOR_STORAGE_KEY, v);
+        } catch (err) {
+          console.warn('Handover: localStorage indisponível.', err);
+        }
+        syncAutorFieldFromOperador_();
+        closeOperadorRequiredModal_();
+        var cb = pendingOperadorCallback_;
+        pendingOperadorCallback_ = null;
+        if (cb) {
+          cb(v);
+        }
+      }
+
+      function cancelOperadorRequiredModal_() {
+        pendingOperadorCallback_ = null;
+        closeOperadorRequiredModal_();
+        showToast_('Operador obrigatório para esta ação', true);
+      }
+
+      function closeOperadorRequiredModal_() {
+        if (operadorRequiredOverlay) {
+          operadorRequiredOverlay.classList.add('hidden');
+          operadorRequiredOverlay.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function cancelReopenHistoricoModal_() {
+        pendingReopenHistoricoId = null;
+        if (reopenConfirmOverlay) {
+          reopenConfirmOverlay.classList.add('hidden');
+          reopenConfirmOverlay.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function confirmReopenHistoricoModal_() {
+        var hid = pendingReopenHistoricoId;
+        var motivoEl = document.getElementById('reopen-motivo-input');
+        var motivo = motivoEl ? String(motivoEl.value || '').trim() : '';
+        if (!hid) {
+          cancelReopenHistoricoModal_();
+          return;
+        }
+        cancelReopenHistoricoModal_();
+        runWithOperador_(function (operador) {
+          var started = Date.now();
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                perfLog_('reopenHistoricoItem', started);
+                touchLastSyncTime_();
+                if (response.tipo === 'Geral' && response.record) {
+                  dashboardData.geral.unshift(response.record);
+                } else if (response.tipo === 'Medicamentos' && response.record) {
+                  dashboardData.medicamentos.unshift(response.record);
+                }
+                var arc = (historicoResolvidos || []).find(function (h) {
+                  return h.ID === hid;
+                });
+                if (arc) {
+                  arc.Estado_Arquivo = 'Reaberto';
+                  arc.Reaberto_Por = operador;
+                  arc.Data_Reabertura = new Date().toISOString();
+                  arc.Motivo_Reabertura = motivo;
+                  arc.ID_Registro_Ativo = response.novoId;
+                }
+                showToast_('Reaberto como pendência');
+                renderAll();
+              })
+              .withFailureHandler(function (error) {
+                perfLog_('reopenHistoricoItem_fail', started);
+                showToast_(getErrorMessage(error), true);
+              })
+              .reopenHistoricoItem(hid, operador, motivo);
+          } catch (error) {
+            showToast_(error.message, true);
+          }
+        });
+      }
+
+      function openReopenHistoricoModal_(id) {
+        pendingReopenHistoricoId = id;
+        var mi = document.getElementById('reopen-motivo-input');
+        if (mi) {
+          mi.value = '';
+        }
+        if (reopenConfirmOverlay) {
+          reopenConfirmOverlay.classList.remove('hidden');
+          reopenConfirmOverlay.setAttribute('aria-hidden', 'false');
+        }
+      }
+
+      function touchLastSyncTime_() {
+        lastDashboardSyncTs = Date.now();
+        var el = document.getElementById('last-sync-label');
+        if (!el) {
+          return;
+        }
+        var d = new Date(lastDashboardSyncTs);
+        el.textContent =
+          'Última atualização: ' +
+          String(d.getHours()).padStart(2, '0') +
+          ':' +
+          String(d.getMinutes()).padStart(2, '0') +
+          ':' +
+          String(d.getSeconds()).padStart(2, '0');
+      }
+
+      function isAnyBlockingModalOpen_() {
+        return (
+          (formModalOverlay && !formModalOverlay.classList.contains('hidden')) ||
+          (operadorRequiredOverlay && !operadorRequiredOverlay.classList.contains('hidden')) ||
+          (reopenConfirmOverlay && !reopenConfirmOverlay.classList.contains('hidden'))
+        );
+      }
+
+      function isChecklistObservationEditing_() {
+        return checklistObservationEditMode.size > 0;
+      }
+
+      function initDashboardSync_() {
+        touchLastSyncTime_();
+        if (dashboardAutoRefreshTimer) {
+          window.clearInterval(dashboardAutoRefreshTimer);
+        }
+        dashboardAutoRefreshTimer = window.setInterval(function () {
+          if (isAnyBlockingModalOpen_() || isChecklistObservationEditing_()) {
+            return;
+          }
+          refreshDashboardNow_(true);
+        }, 60000);
+      }
+
+      function mergeServerIntoDashboard_(bundle) {
+        var keepGeral = (dashboardData.geral || []).filter(function (g) {
+          return (
+            g.__syncState === 'syncing' ||
+            g.__resolveState === 'resolving' ||
+            String(g.ID || '').indexOf('opt-') === 0
+          );
+        });
+        var keepMed = (dashboardData.medicamentos || []).filter(function (m) {
+          return m.__syncState === 'syncing' || String(m.ID || '').indexOf('opt-') === 0;
+        });
+        dashboardData.geral = (bundle.geral || []).slice();
+        keepGeral.forEach(function (row) {
+          if (!dashboardData.geral.some(function (x) {
+            return x.ID === row.ID;
+          })) {
+            dashboardData.geral.unshift(row);
+          }
+        });
+        dashboardData.medicamentos = (bundle.medicamentos || []).slice();
+        keepMed.forEach(function (row) {
+          if (!dashboardData.medicamentos.some(function (x) {
+            return x.ID === row.ID;
+          })) {
+            dashboardData.medicamentos.unshift(row);
+          }
+        });
+        dashboardData.checklistTurno = normalizeChecklistData_(bundle.checklistTurno);
+        if (bundle.bundleTurno) {
+          activeChecklistTurno = bundle.bundleTurno;
+        }
+      }
+
+      function refreshDashboardNow_(silent) {
+        if (!silent && isAnyBlockingModalOpen_()) {
+          showToast_('Feche os modais para atualizar.', true);
+          return;
+        }
+        var started = Date.now();
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (bundle) {
+              perfLog_('refreshDashboardBundle', started);
+              mergeServerIntoDashboard_(bundle);
+              touchLastSyncTime_();
+              initChecklistTurnoUi_();
+              renderAll();
+              if (!silent) {
+                showToast_('Dados atualizados');
+              }
+            })
+            .withFailureHandler(function (error) {
+              perfLog_('refreshDashboardBundle_fail', started);
+              if (!silent) {
+                showToast_(getErrorMessage(error), true);
+              }
+            })
+            .refreshDashboardBundle(activeChecklistTurno);
+        } catch (error) {
+          if (!silent) {
+            showToast_(error.message, true);
+          }
+        }
+      }
+
+      function initChecklistTurnoUi_() {
+        if (checklistTurnSelect) {
+          checklistTurnSelect.value = activeChecklistTurno;
+        }
+        updateChecklistTurnTitle_();
+      }
+
+      function updateChecklistTurnTitle_() {
+        if (checklistTurnTitleEl) {
+          checklistTurnTitleEl.textContent = 'Checklist do turno: ' + activeChecklistTurno;
+        }
+      }
+
+      function onChecklistTurnoChange_(value) {
+        activeChecklistTurno = value || 'Manhã';
+        updateChecklistTurnTitle_();
+        refreshChecklistForTurno_(false);
+      }
+
+      function refreshChecklistForTurno_(silent) {
+        var started = Date.now();
+        try {
+          getScriptRunner_()
+            .withSuccessHandler(function (response) {
+              perfLog_('generateChecklistForTurno', started);
+              if (response.checklistTurno) {
+                dashboardData.checklistTurno = normalizeChecklistData_(response.checklistTurno);
+              }
+              touchLastSyncTime_();
+              renderChecklistSection();
+              renderSummary();
+              if (!silent) {
+                showToast_('Checklist do turno carregado');
+              }
+            })
+            .withFailureHandler(function (error) {
+              perfLog_('generateChecklistForTurno_fail', started);
+              if (!silent) {
+                showToast_(getErrorMessage(error), true);
+              }
+            })
+            .generateChecklistForTurno(activeChecklistTurno);
+        } catch (error) {
+          if (!silent) {
+            showToast_(error.message, true);
+          }
+        }
+      }
+
+      function formatQueueActionError_(error, ctx) {
+        var base = getErrorMessage(error);
+        return (
+          (ctx && ctx.acao ? ctx.acao + ' — ' : '') +
+          'ID ' +
+          (ctx && ctx.id ? ctx.id : '?') +
+          (ctx && ctx.aba ? ' | aba ' + ctx.aba : '') +
+          ' | ' +
+          base
+        );
+      }
 
       function initOperadorBar_() {
         if (!operadorAtualInput) {
@@ -1054,27 +1470,6 @@
 
       function getOperadorAtual_() {
         return operadorAtualInput ? operadorAtualInput.value.trim() : '';
-      }
-
-      function ensureOperadorForCriticalAction_() {
-        var op = getOperadorAtual_();
-        if (op) {
-          return op;
-        }
-        var prompted = window.prompt('Informe o operador atual (nome):', '');
-        prompted = String(prompted || '').trim();
-        if (!prompted) {
-          return '';
-        }
-        if (operadorAtualInput) {
-          operadorAtualInput.value = prompted;
-        }
-        try {
-          localStorage.setItem(OPERADOR_STORAGE_KEY, prompted);
-        } catch (err) {
-          console.warn('Handover: localStorage indisponível.', err);
-        }
-        return prompted;
       }
 
       function showToast_(message, isError) {
@@ -1240,7 +1635,7 @@
               showToast_(getErrorMessage(err), true);
               callback();
             })
-            .fetchHistoricoResolvidos(120);
+            .fetchHistoricoResolvidos(280);
         } catch (err) {
           historicoLoadState = 'idle';
           showToast_(getErrorMessage(err), true);
@@ -1321,7 +1716,7 @@
           buildSummaryBox_('Medicamentos pendentes', medicationPending.length, 'Aguardando ação'),
           buildSummaryBox_('Comprados sem aviso', boughtWithoutWhatsapp.length, 'Prioridade de WhatsApp'),
           buildSummaryBox_(
-            'Checklist manhã',
+            'Checklist (' + (checklist.turno || activeChecklistTurno || 'Manhã').trim() + ')',
             checklistSummaryData.percentualConcluido + '%',
             checklistSummaryData.itensPendentes + ' pendente(s)'
           ),
@@ -1344,6 +1739,180 @@
         );
       }
 
+      function todayKeyLocal_() {
+        var d = new Date();
+        var pad = function (n) {
+          return String(n).padStart(2, '0');
+        };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      }
+
+      function historicoTsDay_(item) {
+        var s = String(item.Timestamp || '');
+        if (!s) return '';
+        return s.indexOf('T') >= 0 ? s.split('T')[0] : s.slice(0, 10);
+      }
+
+      function historicoResDay_(item) {
+        var s = String(item.Data_Resolucao || '');
+        if (!s) return '';
+        return s.indexOf('T') >= 0 ? s.split('T')[0] : s.slice(0, 10);
+      }
+
+      function filterHistoricoRows_(rows) {
+        var today = todayKeyLocal_();
+        var cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        var cutoffKey =
+          cutoff.getFullYear() +
+          '-' +
+          String(cutoff.getMonth() + 1).padStart(2, '0') +
+          '-' +
+          String(cutoff.getDate()).padStart(2, '0');
+
+        return (rows || []).filter(function (item) {
+          if (historicoFilterState.categoria === 'geral' && String(item.Origem) !== 'Geral') {
+            return false;
+          }
+          if (historicoFilterState.categoria === 'medicamentos' && String(item.Origem) !== 'Medicamentos') {
+            return false;
+          }
+
+          if (historicoFilterState.estado === 'reaberto' && String(item.Estado_Arquivo || '') !== 'Reaberto') {
+            return false;
+          }
+          if (
+            historicoFilterState.estado === 'resolvido' &&
+            String(item.Estado_Arquivo || 'Resolvido') !== 'Resolvido'
+          ) {
+            return false;
+          }
+
+          var opNeed = String(historicoFilterState.operador || '').trim().toLowerCase();
+          if (opNeed) {
+            var hay =
+              (
+                String(item.Resolvido_Por || '') +
+                ' ' +
+                String(item.Reaberto_Por || '') +
+                ' ' +
+                String(item.Autor || '') +
+                ' ' +
+                String(item.Atendente || '')
+              ).toLowerCase();
+            if (hay.indexOf(opNeed) === -1) {
+              return false;
+            }
+          }
+
+          var criados = historicoFilterState.criados;
+          if (criados === 'hoje') {
+            if (historicoTsDay_(item) !== today) {
+              return false;
+            }
+          } else if (criados === '7d') {
+            if (historicoTsDay_(item) < cutoffKey) {
+              return false;
+            }
+          }
+
+          var res = historicoFilterState.resolucao;
+          if (res === 'hoje') {
+            if (historicoResDay_(item) !== today) {
+              return false;
+            }
+          } else if (res === '7d') {
+            var rd = historicoResDay_(item);
+            if (!rd || rd < cutoffKey) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+
+      function renderHistoricoFiltersPanel_() {
+        if (!historicoFiltersPanel) {
+          return;
+        }
+        if (activeQueueFilter !== 'resolvidos') {
+          historicoFiltersPanel.classList.add('hidden');
+          historicoFiltersPanel.innerHTML = '';
+          return;
+        }
+        historicoFiltersPanel.classList.remove('hidden');
+        historicoFiltersPanel.innerHTML =
+          '<div class="historico-filters-inner">' +
+          '<div class="filter-row"><strong>Criação</strong></div>' +
+          '<div class="filter-row">' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.criados === 'todos' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'criados\',\'todos\')">Todos</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.criados === 'hoje' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'criados\',\'hoje\')">Hoje</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.criados === '7d' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'criados\',\'7d\')">Últimos 7 dias</button>' +
+          '</div>' +
+          '<div class="filter-row"><strong>Resolução</strong></div>' +
+          '<div class="filter-row">' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.resolucao === 'todos' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'resolucao\',\'todos\')">Todos</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.resolucao === 'hoje' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'resolucao\',\'hoje\')">Hoje</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.resolucao === '7d' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'resolucao\',\'7d\')">Últimos 7 dias</button>' +
+          '</div>' +
+          '<div class="filter-row"><strong>Categoria</strong></div>' +
+          '<div class="filter-row">' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.categoria === 'todos' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'categoria\',\'todos\')">Todos</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.categoria === 'geral' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'categoria\',\'geral\')">Geral</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.categoria === 'medicamentos' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'categoria\',\'medicamentos\')">Medicamentos</button>' +
+          '</div>' +
+          '<div class="filter-row"><strong>Estado</strong></div>' +
+          '<div class="filter-row">' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.estado === 'todos' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'estado\',\'todos\')">Todos</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.estado === 'resolvido' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'estado\',\'resolvido\')">Arquivado</button>' +
+          '<button type="button" class="filter-button' +
+          (historicoFilterState.estado === 'reaberto' ? ' active' : '') +
+          '" onclick="setHistoricoFilter_(\'estado\',\'reaberto\')">Reaberto</button>' +
+          '</div>' +
+          '<div class="filter-row">' +
+          '<label style="font-size:12px;">Operador / responsável<br>' +
+          '<input id="historico-operador-filter" type="text" style="min-width:220px;padding:6px;" placeholder="Filtrar por nome" value="' +
+          escapeAttribute(historicoFilterState.operador) +
+          '" onchange="setHistoricoOperadorFilter_(this.value)">' +
+          '</label>' +
+          '</div>' +
+          '</div>';
+      }
+
+      function setHistoricoOperadorFilter_(value) {
+        historicoFilterState.operador = String(value || '');
+        renderQueue();
+      }
+
+      function setHistoricoFilter_(field, value) {
+        historicoFilterState[field] = value;
+        renderHistoricoFiltersPanel_();
+        renderQueue();
+      }
+
       function buildAuditMetaLine_(item) {
         if (!item) {
           return '';
@@ -1362,6 +1931,17 @@
               item.Resolvido_Por +
               (item.Data_Resolucao ? ' (' + formatDateTime(item.Data_Resolucao) + ')' : '')
           );
+        }
+        if (item.Reaberto_Por) {
+          parts.push(
+            'Reaberto por: ' +
+              item.Reaberto_Por +
+              (item.Data_Reabertura ? ' (' + formatDateTime(item.Data_Reabertura) + ')' : '')
+          );
+        }
+        var estadoArq = String(item.Estado_Arquivo || '').trim();
+        if (estadoArq) {
+          parts.push('Estado no arquivo: ' + estadoArq);
         }
         return parts.join(' | ');
       }
@@ -1385,13 +1965,29 @@
       function buildHistoricoQueueItems_(rows) {
         return (rows || []).map(function (item) {
           var origem = String(item.Origem || '');
+          var estadoArq = String(item.Estado_Arquivo || 'Resolvido').trim();
+          var reopenEligible = estadoArq !== 'Reaberto';
+          var arquivoStatusLabel =
+            estadoArq === 'Reaberto'
+              ? 'Reaberto'
+              : estadoArq === 'Resolvido'
+              ? 'Arquivado'
+              : estadoArq || 'Arquivado';
           var audit = buildAuditMetaLine_(item);
           var base = {
             id: item.ID,
             type: 'historico',
             isOverdue: false,
             whatsappNotSent: false,
-            actions: [],
+            actions: reopenEligible
+              ? [
+                  {
+                    label: 'Reverter para pendente',
+                    handler: 'openReopenHistoricoModal_',
+                    className: 'secondary',
+                  },
+                ]
+              : [],
             syncState: '',
             syncError: '',
             extraMeta:
@@ -1405,8 +2001,8 @@
             var hu = geralQueueUrgenciaFromItem_(item);
             return Object.assign({}, base, {
               originLabel: 'Histórico · Geral',
-              statusLabel: 'Resolvido',
-              statusKey: 'historico_resolvido',
+              statusLabel: arquivoStatusLabel,
+              statusKey: estadoArq === 'Reaberto' ? 'historico_reaberto' : 'historico_resolvido',
               title: ht,
               description:
                 'Autor: ' +
@@ -1425,8 +2021,8 @@
 
           return Object.assign({}, base, {
             originLabel: 'Histórico · Medicamentos',
-            statusLabel: String(item.Status || 'Arquivado'),
-            statusKey: 'historico_med',
+            statusLabel: arquivoStatusLabel,
+            statusKey: estadoArq === 'Reaberto' ? 'historico_reaberto' : 'historico_med',
             title: item.Medicamento || 'Medicamento',
             description:
               'Tipo: ' +
@@ -1434,7 +2030,9 @@
               ' | Cliente: ' +
               (item.Cliente || '-') +
               ' | Atendente: ' +
-              (item.Atendente || '-'),
+              (item.Atendente || '-') +
+              ' | Registro: ' +
+              (item.Status || '-'),
             person: item.Cliente ? item.Cliente + ' / ' + (item.Atendente || '-') : item.Atendente || '-',
             forecast: item.Previsao_Entrega ? formatDate(item.Previsao_Entrega) : '',
             price: medicationTipoFromRecord_(item) === 'falta' ? '' : formatCurrencyBr_(item.Preco_Venda),
@@ -1446,7 +2044,8 @@
 
       function buildQueueItemsForRender_() {
         if (activeQueueFilter === 'resolvidos') {
-          return buildHistoricoQueueItems_(historicoResolvidos).sort(function (a, b) {
+          var filteredRows = filterHistoricoRows_(historicoResolvidos);
+          return buildHistoricoQueueItems_(filteredRows).sort(function (a, b) {
             var timeA = Number(a.timeSort || 0);
             var timeB = Number(b.timeSort || 0);
             return timeB - timeA;
@@ -1456,6 +2055,7 @@
       }
 
       function renderQueue() {
+        renderHistoricoFiltersPanel_();
         const queueItems = buildQueueItemsForRender_();
         queueList.innerHTML = '';
         queueEmpty.classList.toggle('hidden', queueItems.length !== 0);
@@ -1494,6 +2094,9 @@
         if (item.syncState === 'error') {
           badges.unshift('<span class="badge status-pendente">Erro ao salvar</span>');
         }
+        if (item.__resolveState === 'resolving') {
+          badges.unshift('<span class="badge">Resolvendo...</span>');
+        }
 
         if (item.isOverdue) {
           badges.push('<span class="badge status-pendente">Atrasado/Hoje</span>');
@@ -1520,6 +2123,12 @@
           '</div>' +
           '<div class="queue-desc">' +
           escapeHtml(item.description) +
+          (item.__resolveError
+            ? '<div class="card-inline-error">' + escapeHtml(item.__resolveError) + '</div>'
+            : '') +
+          (item.syncError && item.syncState === 'error'
+            ? '<div class="card-inline-error">' + escapeHtml(item.syncError) + '</div>'
+            : '') +
           '</div>' +
           '<div class="queue-meta">' +
           escapeHtml(metaLines.join(' | ')) +
@@ -1562,6 +2171,23 @@
             urg +
             ' · Descrição: ' +
             (item.Descricao || '-');
+          var resolving = item.__resolveState === 'resolving';
+          var syncErr = item.__syncState === 'error';
+          var pendingRetry = item.__pendingSave && syncErr;
+          var retryActions = pendingRetry
+            ? [
+                {
+                  label: 'Tentar novamente',
+                  handler: 'retryPendingSave_',
+                  className: 'secondary',
+                },
+                {
+                  label: 'Editar',
+                  handler: 'editPendingSave_',
+                  className: 'light',
+                },
+              ]
+            : [];
           return {
             id: item.ID,
             type: 'geral',
@@ -1577,11 +2203,15 @@
             extraMeta: audit,
             syncState: item.__syncState || '',
             syncError: item.__syncError || '',
+            __resolveState: item.__resolveState || '',
+            __resolveError: item.__resolveError || '',
             timeLabel: formatDateTime(item.Timestamp),
             timeSort: parseDateTime_(item.Timestamp),
             actions:
-              item.__syncState === 'syncing'
+              resolving || item.__syncState === 'syncing'
                 ? []
+                : pendingRetry
+                ? retryActions
                 : [
                     {
                       label: 'Marcar como resolvido',
@@ -1597,29 +2227,47 @@
           const whatsappAvailable = canShowWhatsAppButton(item);
           const whatsappSent = normalizeWhatsappStatus_(item.Status_Aviso_WhatsApp) === 'tentativa registrada';
 
+          var medPendingRetry = item.__syncState === 'error' && item.__pendingSave;
+          var retryActionsMed = medPendingRetry
+            ? [
+                {
+                  label: 'Tentar novamente',
+                  handler: 'retryPendingSave_',
+                  className: 'secondary',
+                },
+                {
+                  label: 'Editar',
+                  handler: 'editPendingSave_',
+                  className: 'light',
+                },
+              ]
+            : null;
+
           const actions = [];
-          if (!item.Comprado && item.__syncState !== 'syncing') {
-            actions.push({
-              label: 'Marcar como comprado',
-              handler: 'markPurchased',
-              className: 'secondary',
-            });
-          }
+          if (!retryActionsMed) {
+            if (!item.Comprado && item.__syncState !== 'syncing') {
+              actions.push({
+                label: 'Marcar como comprado',
+                handler: 'markPurchased',
+                className: 'secondary',
+              });
+            }
 
-          if (whatsappAvailable && item.__syncState !== 'syncing') {
-            actions.push({
-              label: whatsappSent ? 'Reabrir WhatsApp' : 'Avisar no WhatsApp',
-              handler: 'notifyClientWhatsApp',
-              className: 'whatsapp',
-            });
-          }
+            if (whatsappAvailable && item.__syncState !== 'syncing') {
+              actions.push({
+                label: whatsappSent ? 'Reabrir WhatsApp' : 'Avisar no WhatsApp',
+                handler: 'notifyClientWhatsApp',
+                className: 'whatsapp',
+              });
+            }
 
-          if (!item.Entregue && item.__syncState !== 'syncing') {
-            actions.push({
-              label: 'Marcar como entregue',
-              handler: 'markDelivered',
-              className: '',
-            });
+            if (!item.Entregue && item.__syncState !== 'syncing') {
+              actions.push({
+                label: 'Marcar como entregue',
+                handler: 'markDelivered',
+                className: '',
+              });
+            }
           }
 
           var auditMed = buildAuditMetaLine_(item);
@@ -1646,7 +2294,7 @@
             timeLabel: formatDateTime(item.Timestamp),
             timeSort: parseDateTime_(item.Timestamp),
             whatsappNotSent: whatsappAvailable && !whatsappSent,
-            actions: actions,
+            actions: retryActionsMed || actions,
           };
         });
 
@@ -1707,6 +2355,7 @@
           });
           queueSubtitle.textContent = 'Carregando histórico...';
           loadHistoricoIfNeeded_(function () {
+            renderHistoricoFiltersPanel_();
             renderQueue();
             renderSummary();
           });
@@ -1717,6 +2366,7 @@
         document.querySelectorAll('#queue-filters .filter-button').forEach(function (button) {
           button.classList.toggle('active', button.dataset.filter === filterKey);
         });
+        renderHistoricoFiltersPanel_();
         renderQueue();
       }
 
@@ -1929,7 +2579,7 @@
         });
       }
 
-      function getObservationValueForItem_(item) {
+      function getObservationDraftValueForEdit_(item) {
         if (!item || !item.ID) {
           return '';
         }
@@ -2094,14 +2744,14 @@
           getScriptRunner_()
             .withSuccessHandler(function (response) {
               dashboardData.checklistTurno = normalizeChecklistData_(response.checklistTurno);
-              perfLog_('generateTodayMorningChecklist', started);
+              perfLog_('generateChecklistForTurno', started);
               renderChecklistSection();
               renderSummary();
             })
             .withFailureHandler(function (error) {
               setStatus(checklistStatus, getErrorMessage(error), true);
             })
-            .generateTodayMorningChecklist();
+            .generateChecklistForTurno(activeChecklistTurno);
         } catch (error) {
           setStatus(checklistStatus, error.message, true);
         }
@@ -2115,13 +2765,55 @@
           checklistDraftKey_(checklistPendingItemId) === checklistDraftKey_(item.ID);
         const itemClass = 'check-item' + (isLate ? ' late' : '') + (isSaving ? ' syncing' : '');
         const observationInputId = buildChecklistObservationInputId_(item.ID);
-        const showObservation = openChecklistObservations.has(checklistDraftKey_(item.ID));
-        var obsDraftVal = getObservationValueForItem_(item);
-        const hasObservation = Boolean((obsDraftVal || '').trim());
+        const key = checklistDraftKey_(item.ID);
+        const editing = checklistObservationEditMode.has(key);
+        const savedObs = String(item.Observacao || '').trim();
+        const draftVal = editing ? getObservationDraftValueForEdit_(item) : '';
         const checkInfo = item.Data_Hora_Check
           ? 'Última marcação: ' + formatDateTime(item.Data_Hora_Check)
           : 'Sem marcação';
         const respLine = item.Responsavel ? 'Responsável: ' + item.Responsavel : '';
+
+        var obsBlock = '';
+        if (editing) {
+          obsBlock =
+            '<div class="obs-panel">' +
+            '<input id="' +
+            escapeAttribute(observationInputId) +
+            '" type="text" data-check-obs-input="1" data-check-item-id="' +
+            escapeAttribute(item.ID) +
+            '" value="' +
+            escapeAttribute(draftVal) +
+            '" placeholder="Observação do item">' +
+            '<div class="obs-edit-actions">' +
+            '<button type="button" onclick="saveChecklistObservation(\'' +
+            escapeAttribute(item.ID) +
+            "', '" +
+            escapeAttribute(observationInputId) +
+            '\')">Salvar</button>' +
+            '<button type="button" class="light" onclick="cancelChecklistObservationEdit_(\'' +
+            escapeAttribute(item.ID) +
+            '\')">Cancelar</button>' +
+            '</div>' +
+            '</div>';
+        } else if (savedObs) {
+          obsBlock =
+            '<div class="obs-readonly"><strong>Observação:</strong> ' +
+            escapeHtml(savedObs) +
+            '</div>' +
+            '<div class="obs-bar">' +
+            '<button type="button" class="light" onclick="startChecklistObservationEdit_(\'' +
+            escapeAttribute(item.ID) +
+            '\')">Editar observação</button>' +
+            '</div>';
+        } else {
+          obsBlock =
+            '<div class="obs-bar">' +
+            '<button type="button" class="light" onclick="startChecklistObservationEdit_(\'' +
+            escapeAttribute(item.ID) +
+            '\')">Adicionar observação</button>' +
+            '</div>';
+        }
 
         return (
           '<article class="' +
@@ -2148,30 +2840,7 @@
           buildChecklistActionButton_(item.ID, 'Não aplicável', status === 'Não aplicável', 'secondary', status) +
           buildChecklistActionButton_(item.ID, 'Pendente', status === 'Pendente', 'light', status) +
           '</div>' +
-          '<div class="obs-bar">' +
-          '<button type="button" class="light" onclick="toggleChecklistObservation(\'' +
-          escapeAttribute(item.ID) +
-          '\')">' +
-          (showObservation ? 'Fechar observação' : 'Observação') +
-          '</button>' +
-          (hasObservation ? '<span class="obs-flag">com observação</span>' : '<span></span>') +
-          '</div>' +
-          (showObservation
-            ? '<div class="obs-panel">' +
-              '<input id="' +
-              escapeAttribute(observationInputId) +
-              '" type="text" data-check-obs-input="1" data-check-item-id="' +
-              escapeAttribute(item.ID) +
-              '" value="' +
-              escapeAttribute(obsDraftVal) +
-              '" placeholder="Observação do item">' +
-              '<button type="button" class="light" onclick="saveChecklistObservation(\'' +
-              escapeAttribute(item.ID) +
-              '\', \'' +
-              escapeAttribute(observationInputId) +
-              '\')">Salvar</button>' +
-              '</div>'
-            : '') +
+          obsBlock +
           '</article>'
         );
       }
@@ -2225,105 +2894,119 @@
         renderChecklistSection();
       }
 
-      function toggleChecklistObservation(itemId) {
+      function startChecklistObservationEdit_(itemId) {
         var key = checklistDraftKey_(itemId);
-        if (openChecklistObservations.has(key)) {
-          openChecklistObservations.delete(key);
-        } else {
-          openChecklistObservations.add(key);
+        var model = findChecklistItemModel_(itemId);
+        if (!model) {
+          return;
         }
-        renderChecklistSection();
+        if (!Object.prototype.hasOwnProperty.call(checklistObservationDrafts, key)) {
+          checklistObservationDrafts[key] = model.Observacao || '';
+        }
+        checklistObservationEditMode.add(key);
+        if (!patchChecklistItemArticle_(itemId)) {
+          renderChecklistSection();
+        }
+      }
+
+      function cancelChecklistObservationEdit_(itemId) {
+        var key = checklistDraftKey_(itemId);
+        checklistObservationEditMode.delete(key);
+        delete checklistObservationDrafts[key];
+        if (!patchChecklistItemArticle_(itemId)) {
+          renderChecklistSection();
+        }
       }
 
       function updateChecklistStatus(id, status) {
-        var operador = ensureOperadorForCriticalAction_();
-        if (!operador) {
-          showToast_('Informe o operador atual antes de alterar o checklist.', true);
-          return;
-        }
+        runWithOperador_(function (operador) {
+          checklistPendingItemId = id;
+          optimisticChecklistPatch_(id, status);
+          if (!patchChecklistItemArticle_(id)) {
+            renderChecklistSection();
+          }
 
-        checklistPendingItemId = id;
-        optimisticChecklistPatch_(id, status);
-        if (!patchChecklistItemArticle_(id)) {
-          renderChecklistSection();
-        }
+          var started = Date.now();
+          clearStatus(checklistStatus);
 
-        var started = Date.now();
-        clearStatus(checklistStatus);
-
-        try {
-          getScriptRunner_()
-            .withSuccessHandler(function (response) {
-              checklistPendingItemId = null;
-              applyChecklistPatch_(response);
-              perfLog_('updateChecklistItemStatus', started);
-              if (!patchChecklistItemArticle_(id)) {
-                renderChecklistSection();
-              }
-              renderSummary();
-              showToast_('Checklist atualizado');
-            })
-            .withFailureHandler(function (error) {
-              checklistPendingItemId = null;
-              perfLog_('updateChecklistItemStatus_fail', started);
-              resyncChecklistFromServer_();
-              showToast_(getErrorMessage(error), true);
-              setStatus(checklistStatus, getErrorMessage(error), true);
-            })
-            .updateChecklistItemStatus(id, status, operador);
-        } catch (error) {
-          checklistPendingItemId = null;
-          resyncChecklistFromServer_();
-          setStatus(checklistStatus, error.message, true);
-          showToast_(error.message, true);
-        }
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                checklistPendingItemId = null;
+                applyChecklistPatch_(response);
+                perfLog_('updateChecklistItemStatus', started);
+                if (!patchChecklistItemArticle_(id)) {
+                  renderChecklistSection();
+                }
+                renderSummary();
+                showToast_('Checklist atualizado');
+              })
+              .withFailureHandler(function (error) {
+                checklistPendingItemId = null;
+                perfLog_('updateChecklistItemStatus_fail', started);
+                resyncChecklistFromServer_();
+                showToast_(getErrorMessage(error), true);
+                setStatus(checklistStatus, getErrorMessage(error), true);
+              })
+              .updateChecklistItemStatus(id, status, operador);
+          } catch (error) {
+            checklistPendingItemId = null;
+            resyncChecklistFromServer_();
+            setStatus(checklistStatus, error.message, true);
+            showToast_(error.message, true);
+          }
+        });
       }
 
       function saveChecklistObservation(id, inputId) {
-        const input = document.getElementById(inputId);
-        const observacao = input ? input.value : '';
-        checklistObservationDrafts[checklistDraftKey_(id)] = observacao;
-        var operador = ensureOperadorForCriticalAction_();
-        if (!operador) {
-          showToast_('Informe o operador atual antes de salvar observação.', true);
-          return;
+        var input = document.getElementById(inputId);
+        if (input) {
+          checklistObservationDrafts[checklistDraftKey_(id)] = input.value;
         }
 
-        checklistPendingItemId = id;
-        if (!patchChecklistItemArticle_(id)) {
-          renderChecklistSection();
-        }
-        setStatus(checklistStatus, 'Salvando observação...');
+        runWithOperador_(function (operador) {
+          var input2 = document.getElementById(inputId);
+          var observacao = input2 ? input2.value : checklistObservationDrafts[checklistDraftKey_(id)] || '';
+          checklistObservationDrafts[checklistDraftKey_(id)] = observacao;
 
-        var started = Date.now();
-        try {
-          getScriptRunner_()
-            .withSuccessHandler(function (response) {
-              checklistPendingItemId = null;
-              applyChecklistPatch_(response);
-              perfLog_('updateChecklistItemObservation', started);
-              delete checklistObservationDrafts[checklistDraftKey_(id)];
-              if (!patchChecklistItemArticle_(id)) {
-                renderChecklistSection();
-              }
-              renderSummary();
-              setStatus(checklistStatus, 'Observação salva.');
-              showToast_('Observação salva');
-            })
-            .withFailureHandler(function (error) {
-              checklistPendingItemId = null;
-              perfLog_('updateChecklistItemObservation_fail', started);
-              resyncChecklistFromServer_();
-              setStatus(checklistStatus, getErrorMessage(error), true);
-              showToast_(getErrorMessage(error), true);
-            })
-            .updateChecklistItemObservation(id, observacao, operador);
-        } catch (error) {
-          checklistPendingItemId = null;
-          resyncChecklistFromServer_();
-          setStatus(checklistStatus, error.message, true);
-          showToast_(error.message, true);
-        }
+          checklistPendingItemId = id;
+          if (!patchChecklistItemArticle_(id)) {
+            renderChecklistSection();
+          }
+          setStatus(checklistStatus, 'Salvando observação...');
+
+          var started = Date.now();
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                checklistPendingItemId = null;
+                applyChecklistPatch_(response);
+                perfLog_('updateChecklistItemObservation', started);
+                var k = checklistDraftKey_(id);
+                checklistObservationEditMode.delete(k);
+                delete checklistObservationDrafts[k];
+                if (!patchChecklistItemArticle_(id)) {
+                  renderChecklistSection();
+                }
+                renderSummary();
+                setStatus(checklistStatus, 'Observação salva.');
+                showToast_('Observação salva');
+              })
+              .withFailureHandler(function (error) {
+                checklistPendingItemId = null;
+                perfLog_('updateChecklistItemObservation_fail', started);
+                resyncChecklistFromServer_();
+                setStatus(checklistStatus, getErrorMessage(error), true);
+                showToast_(getErrorMessage(error), true);
+              })
+              .updateChecklistItemObservation(id, observacao, operador);
+          } catch (error) {
+            checklistPendingItemId = null;
+            resyncChecklistFromServer_();
+            setStatus(checklistStatus, error.message, true);
+            showToast_(error.message, true);
+          }
+        });
       }
 
       function refreshChecklistToday() {
@@ -2335,7 +3018,7 @@
           getScriptRunner_()
             .withSuccessHandler(function (response) {
               dashboardData.checklistTurno = normalizeChecklistData_(response.checklistTurno);
-              perfLog_('generateTodayMorningChecklist', started);
+              perfLog_('generateChecklistForTurno', started);
               renderAll();
               setStatus(checklistStatus, 'Checklist atualizado.');
               setChecklistButtonsDisabled(false);
@@ -2346,7 +3029,7 @@
               setChecklistButtonsDisabled(false);
               showToast_(getErrorMessage(error), true);
             })
-            .generateTodayMorningChecklist();
+            .generateChecklistForTurno(activeChecklistTurno);
         } catch (error) {
           setStatus(checklistStatus, error.message, true);
           setChecklistButtonsDisabled(false);
@@ -2507,124 +3190,214 @@
         }
       }
 
-      function handleSubmit(event) {
-        event.preventDefault();
-        clearStatus(formStatus);
-
-        var operador = ensureOperadorForCriticalAction_();
-        if (!operador) {
-          setStatus(formStatus, 'Informe o operador atual no topo antes de salvar.', true);
+      function retryPendingSave_(id) {
+        var row =
+          (dashboardData.geral || []).find(function (x) {
+            return x.ID === id;
+          }) ||
+          (dashboardData.medicamentos || []).find(function (x) {
+            return x.ID === id;
+          });
+        if (!row || !row.__pendingSave) {
+          showToast_('Não há dados pendentes para reenviar.', true);
           return;
         }
-        syncAutorFieldFromOperador_();
-
-        const tab = categorySelect.value;
-        const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
-        var isFalta = false;
-
-        if (tab === 'Medicamentos') {
-          isFalta = String(payload.tipo || '').toLowerCase() === 'falta';
-          if (!isFalta) {
-            const priceResult = normalizePriceInput_(payload.precoVenda);
-            if (priceResult.error) {
-              setStatus(formStatus, priceResult.error, true);
-              return;
-            }
-            payload.precoVenda = priceResult.value;
-          } else {
-            payload.precoVenda = '';
-          }
-        }
-
-        const validationError = validatePayload(tab, payload);
-        if (validationError) {
-          setStatus(formStatus, validationError, true);
-          return;
-        }
-
-        var optimisticId = 'opt-' + Date.now();
-        if (tab === 'Geral') {
-          dashboardData.geral.unshift({
-            ID: optimisticId,
-            Origem: 'Geral',
-            Timestamp: new Date().toISOString(),
-            Autor: payload.autor,
-            Titulo: payload.titulo,
-            Urgencia: payload.urgencia,
-            Descricao: payload.descricao,
-            Resolvido: false,
-            Ultima_Acao_Por: operador,
-            __syncState: 'syncing',
-          });
-        } else {
-          dashboardData.medicamentos.unshift({
-            ID: optimisticId,
-            Origem: 'Medicamentos',
-            Timestamp: new Date().toISOString(),
-            Tipo: payload.tipo,
-            Medicamento: payload.medicamento,
-            Pre_Pago: payload.prePago,
-            Cliente: payload.cliente,
-            Atendente: payload.atendente,
-            Previsao_Entrega: payload.previsaoEntrega,
-            Telefone: payload.telefone,
-            Comprado: false,
-            Entregue: false,
-            Status: 'Pendente',
-            Status_Aviso_WhatsApp: '',
-            Preco_Venda: isFalta ? '' : payload.precoVenda,
-            Ultima_Acao_Por: operador,
-            __syncState: 'syncing',
-          });
-        }
-
+        var ps = row.__pendingSave;
+        row.__syncState = 'syncing';
+        delete row.__syncError;
         renderAll();
-        setFormLoading_(true);
-        saveButton.textContent = 'Salvando...';
-
         var started = Date.now();
         try {
           getScriptRunner_()
             .withSuccessHandler(function (response) {
-              removeOptimisticPlaceholder_(optimisticId, tab);
-              if (tab === 'Geral') {
+              removeOptimisticPlaceholder_(id, ps.tab);
+              if (ps.tab === 'Geral') {
                 upsertGeral_(response.record);
               } else {
                 upsertMedicamento_(response.record);
               }
-              perfLog_('saveData', started);
+              perfLog_('saveData_retry', started);
               renderAll();
-              closeFormModal_();
-              setStatus(formStatus, 'Registro salvo com sucesso.');
-              setFormLoading_(false);
-              saveButton.textContent = 'Salvar';
               showToast_('Salvo');
             })
             .withFailureHandler(function (error) {
-              var list = tab === 'Geral' ? dashboardData.geral : dashboardData.medicamentos;
-              var row = (list || []).find(function (item) {
-                return item.ID === optimisticId;
-              });
-              if (row) {
-                row.__syncState = 'error';
-                row.__syncError = getErrorMessage(error);
-              }
-              perfLog_('saveData_fail', started);
+              row.__syncState = 'error';
+              row.__syncError = getErrorMessage(error);
+              perfLog_('saveData_retry_fail', started);
               renderAll();
-              setStatus(formStatus, getErrorMessage(error), true);
-              setFormLoading_(false);
-              saveButton.textContent = 'Salvar';
-              showToast_('Erro ao salvar', true);
+              showToast_(getErrorMessage(error), true);
             })
-            .saveData(tab, payload, operador);
+            .saveData(ps.tab, ps.payload, ps.operador);
         } catch (error) {
-          removeOptimisticPlaceholder_(optimisticId, tab);
-          setStatus(formStatus, error.message, true);
-          setFormLoading_(false);
-          saveButton.textContent = 'Salvar';
+          row.__syncState = 'error';
+          row.__syncError = error.message;
           renderAll();
           showToast_(error.message, true);
         }
+      }
+
+      function editPendingSave_(id) {
+        var row =
+          (dashboardData.geral || []).find(function (x) {
+            return x.ID === id && x.__pendingSave;
+          }) ||
+          (dashboardData.medicamentos || []).find(function (x) {
+            return x.ID === id && x.__pendingSave;
+          });
+        if (!row || !row.__pendingSave) {
+          showToast_('Registro não encontrado.', true);
+          return;
+        }
+        var ps = row.__pendingSave;
+        removeOptimisticPlaceholder_(id, ps.tab);
+        renderAll();
+        openFormModal_();
+        categorySelect.value = ps.tab;
+        updateVisibleFields();
+        updateMedicinePriceVisibility_();
+        var pl = ps.payload;
+        if (ps.tab === 'Geral') {
+          document.getElementById('autor').value = pl.autor || '';
+          document.getElementById('tituloGeral').value = pl.titulo || '';
+          document.getElementById('urgenciaGeral').value = pl.urgencia || '';
+          document.getElementById('descricao').value = pl.descricao || '';
+        } else {
+          document.getElementById('tipo').value = pl.tipo || '';
+          document.getElementById('medicamento').value = pl.medicamento || '';
+          document.getElementById('precoVenda').value = pl.precoVenda || '';
+          document.getElementById('prePago').checked = !!pl.prePago;
+          document.getElementById('cliente').value = pl.cliente || '';
+          document.getElementById('telefone').value = pl.telefone || '';
+          document.getElementById('atendente').value = pl.atendente || '';
+          document.getElementById('previsaoEntrega').value = pl.previsaoEntrega || '';
+          updateMedicinePriceVisibility_();
+        }
+        syncAutorFieldFromOperador_();
+        showToast_('Revise os dados e salve novamente.', false);
+      }
+
+      function handleSubmit(event) {
+        event.preventDefault();
+        clearStatus(formStatus);
+
+        runWithOperador_(function (operador) {
+          syncAutorFieldFromOperador_();
+
+          const tab = categorySelect.value;
+          const payload = tab === 'Geral' ? getGeneralPayload() : getMedicinePayload();
+          var isFalta = false;
+
+          if (tab === 'Medicamentos') {
+            isFalta = String(payload.tipo || '').toLowerCase() === 'falta';
+            if (!isFalta) {
+              const priceResult = normalizePriceInput_(payload.precoVenda);
+              if (priceResult.error) {
+                setStatus(formStatus, priceResult.error, true);
+                return;
+              }
+              payload.precoVenda = priceResult.value;
+            } else {
+              payload.precoVenda = '';
+            }
+          }
+
+          const validationError = validatePayload(tab, payload);
+          if (validationError) {
+            setStatus(formStatus, validationError, true);
+            return;
+          }
+
+          var pendingCtx = {
+            tab: tab,
+            operador: operador,
+            payload: JSON.parse(JSON.stringify(payload)),
+          };
+
+          var optimisticId = 'opt-' + Date.now();
+          if (tab === 'Geral') {
+            dashboardData.geral.unshift({
+              ID: optimisticId,
+              Origem: 'Geral',
+              Timestamp: new Date().toISOString(),
+              Autor: payload.autor,
+              Titulo: payload.titulo,
+              Urgencia: payload.urgencia,
+              Descricao: payload.descricao,
+              Resolvido: false,
+              Ultima_Acao_Por: operador,
+              __syncState: 'syncing',
+              __pendingSave: pendingCtx,
+            });
+          } else {
+            dashboardData.medicamentos.unshift({
+              ID: optimisticId,
+              Origem: 'Medicamentos',
+              Timestamp: new Date().toISOString(),
+              Tipo: payload.tipo,
+              Medicamento: payload.medicamento,
+              Pre_Pago: payload.prePago,
+              Cliente: payload.cliente,
+              Atendente: payload.atendente,
+              Previsao_Entrega: payload.previsaoEntrega,
+              Telefone: payload.telefone,
+              Comprado: false,
+              Entregue: false,
+              Status: 'Pendente',
+              Status_Aviso_WhatsApp: '',
+              Preco_Venda: isFalta ? '' : payload.precoVenda,
+              Ultima_Acao_Por: operador,
+              __syncState: 'syncing',
+              __pendingSave: pendingCtx,
+            });
+          }
+
+          closeFormModal_();
+          setFormLoading_(false);
+          saveButton.textContent = 'Salvar';
+
+          renderAll();
+
+          var started = Date.now();
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                removeOptimisticPlaceholder_(optimisticId, tab);
+                if (tab === 'Geral') {
+                  upsertGeral_(response.record);
+                } else {
+                  upsertMedicamento_(response.record);
+                }
+                perfLog_('saveData', started);
+                renderAll();
+                showToast_('Salvo');
+              })
+              .withFailureHandler(function (error) {
+                var list = tab === 'Geral' ? dashboardData.geral : dashboardData.medicamentos;
+                var row = (list || []).find(function (item) {
+                  return item.ID === optimisticId;
+                });
+                if (row) {
+                  row.__syncState = 'error';
+                  row.__syncError = getErrorMessage(error);
+                }
+                perfLog_('saveData_fail', started);
+                renderAll();
+                showToast_('Erro ao salvar', true);
+              })
+              .saveData(tab, payload, operador);
+          } catch (error) {
+            var list2 = tab === 'Geral' ? dashboardData.geral : dashboardData.medicamentos;
+            var row2 = (list2 || []).find(function (item) {
+              return item.ID === optimisticId;
+            });
+            if (row2) {
+              row2.__syncState = 'error';
+              row2.__syncError = error.message;
+            }
+            renderAll();
+            showToast_(error.message, true);
+          }
+        });
       }
 
       function getGeneralPayload() {
@@ -2668,65 +3441,61 @@
       }
 
       function markPurchased(id) {
-        var operador = ensureOperadorForCriticalAction_();
-        if (!operador) {
-          showToast_('Informe o operador atual antes desta ação.', true);
-          return;
-        }
+        runWithOperador_(function (operador) {
+          var list = dashboardData.medicamentos || [];
+          var item = list.find(function (m) {
+            return m.ID === id;
+          });
+          if (!item || item.__syncState === 'syncing') {
+            return;
+          }
 
-        var list = dashboardData.medicamentos || [];
-        var item = list.find(function (m) {
-          return m.ID === id;
-        });
-        if (!item || item.__syncState === 'syncing') {
-          return;
-        }
+          var snapshot = {
+            Comprado: item.Comprado,
+            Entregue: item.Entregue,
+            Status: item.Status,
+          };
 
-        var snapshot = {
-          Comprado: item.Comprado,
-          Entregue: item.Entregue,
-          Status: item.Status,
-        };
+          item.Comprado = true;
+          item.Status = 'Comprado';
+          item.__syncState = 'syncing';
 
-        item.Comprado = true;
-        item.Status = 'Comprado';
-        item.__syncState = 'syncing';
-
-        renderAll();
-        clearStatus(queueStatus);
-
-        var started = Date.now();
-        try {
-          getScriptRunner_()
-            .withSuccessHandler(function (response) {
-              delete item.__syncState;
-              if (response.record) {
-                upsertMedicamento_(response.record);
-              }
-              perfLog_('markAsPurchased', started);
-              renderAll();
-              showToast_('Atualizado');
-              setStatus(queueStatus, 'Marcado como comprado.');
-            })
-            .withFailureHandler(function (error) {
-              item.Comprado = snapshot.Comprado;
-              item.Entregue = snapshot.Entregue;
-              item.Status = snapshot.Status;
-              delete item.__syncState;
-              renderAll();
-              setStatus(queueStatus, getErrorMessage(error), true);
-              showToast_(getErrorMessage(error), true);
-            })
-            .markAsPurchased(id, operador);
-        } catch (error) {
-          item.Comprado = snapshot.Comprado;
-          item.Entregue = snapshot.Entregue;
-          item.Status = snapshot.Status;
-          delete item.__syncState;
           renderAll();
-          setStatus(queueStatus, error.message, true);
-          showToast_(error.message, true);
-        }
+          clearStatus(queueStatus);
+
+          var started = Date.now();
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                delete item.__syncState;
+                if (response.record) {
+                  upsertMedicamento_(response.record);
+                }
+                perfLog_('markAsPurchased', started);
+                renderAll();
+                showToast_('Atualizado');
+                setStatus(queueStatus, 'Marcado como comprado.');
+              })
+              .withFailureHandler(function (error) {
+                item.Comprado = snapshot.Comprado;
+                item.Entregue = snapshot.Entregue;
+                item.Status = snapshot.Status;
+                delete item.__syncState;
+                renderAll();
+                setStatus(queueStatus, getErrorMessage(error), true);
+                showToast_(getErrorMessage(error), true);
+              })
+              .markAsPurchased(id, operador);
+          } catch (error) {
+            item.Comprado = snapshot.Comprado;
+            item.Entregue = snapshot.Entregue;
+            item.Status = snapshot.Status;
+            delete item.__syncState;
+            renderAll();
+            setStatus(queueStatus, error.message, true);
+            showToast_(error.message, true);
+          }
+        });
       }
 
       function markDelivered(id) {
@@ -2790,37 +3559,78 @@
       }
 
       function runQueueAction_(message, functionName, id) {
-        var operador = ensureOperadorForCriticalAction_();
-        if (!operador) {
-          showToast_('Informe o operador atual antes desta ação.', true);
-          return;
-        }
+        runWithOperador_(function (operador) {
+          var started = Date.now();
+          clearStatus(queueStatus);
 
-        var started = Date.now();
-        clearStatus(queueStatus);
+          if (functionName === 'markAsResolved') {
+            var gRow = (dashboardData.geral || []).find(function (g) {
+              return g.ID === id;
+            });
+            if (!gRow || gRow.__resolveState === 'resolving') {
+              return;
+            }
+            delete gRow.__resolveError;
+            gRow.__resolveState = 'resolving';
+            renderAll();
+          }
 
-        try {
-          getScriptRunner_()
-            .withSuccessHandler(function (response) {
-              perfLog_(functionName, started);
-              if (functionName === 'markAsResolved') {
-                removeGeralById_(response.removedId || id);
-              } else if (response.record) {
-                upsertMedicamento_(response.record);
+          try {
+            getScriptRunner_()
+              .withSuccessHandler(function (response) {
+                perfLog_(functionName, started);
+                if (functionName === 'markAsResolved') {
+                  removeGeralById_(response.removedId || id);
+                  renderAll();
+                  setStatus(queueStatus, 'Solicitação arquivada.');
+                  showToast_('Resolvido');
+                  return;
+                }
+                if (response.record) {
+                  upsertMedicamento_(response.record);
+                }
+                renderAll();
+                setStatus(queueStatus, message.replace(/\.\.\.$/, '') + ' concluído.');
+                showToast_('Atualizado');
+              })
+              .withFailureHandler(function (error) {
+                if (functionName === 'markAsResolved') {
+                  var g2 = (dashboardData.geral || []).find(function (g) {
+                    return g.ID === id;
+                  });
+                  if (g2) {
+                    delete g2.__resolveState;
+                    g2.__resolveError = formatQueueActionError_(error, {
+                      id: id,
+                      aba: 'Geral',
+                      acao: 'Resolver / arquivar',
+                    });
+                  }
+                  renderAll();
+                }
+                setStatus(queueStatus, getErrorMessage(error), true);
+                showToast_(getErrorMessage(error), true);
+              })
+              [functionName](id, operador);
+          } catch (error) {
+            if (functionName === 'markAsResolved') {
+              var g3 = (dashboardData.geral || []).find(function (g) {
+                return g.ID === id;
+              });
+              if (g3) {
+                delete g3.__resolveState;
+                g3.__resolveError = formatQueueActionError_(error, {
+                  id: id,
+                  aba: 'Geral',
+                  acao: 'Resolver / arquivar',
+                });
               }
               renderAll();
-              setStatus(queueStatus, message.replace(/\.\.\.$/, '') + ' concluído.');
-              showToast_('Atualizado');
-            })
-            .withFailureHandler(function (error) {
-              setStatus(queueStatus, getErrorMessage(error), true);
-              showToast_(getErrorMessage(error), true);
-            })
-            [functionName](id, operador);
-        } catch (error) {
-          setStatus(queueStatus, error.message, true);
-          showToast_(error.message, true);
-        }
+            }
+            setStatus(queueStatus, error.message, true);
+            showToast_(error.message, true);
+          }
+        });
       }
 
       function setFormLoading_(isLoading) {
