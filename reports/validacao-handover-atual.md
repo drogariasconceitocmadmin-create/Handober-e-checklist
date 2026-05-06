@@ -1,4 +1,4 @@
-# Validacao Handover - commit e986992
+# Validacao Handover - commit 92a7066
 
 Projeto: Handover - Drogarias Conceito
 
@@ -6,7 +6,7 @@ Pasta: `C:\Users\Marco\Desktop\Sis Drogaria\Handover`
 
 Branch: `master`
 
-Commit validado: `e986992 - Handover desktop UX: operador modal, resolver rollback, checklist obs, histórico filtros, sync checklist por turno e saves otimistas.`
+Commit validado: `92a7066 - Handover v23: vencimento Geral, Falta/Encomenda campos, revert medicamento, Enter checklist/modal`
 
 ScriptId: `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
 
@@ -18,9 +18,9 @@ URL oficial: `https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklp
 
 ## Resultado
 
-Status geral: OK
+Status geral: PARCIAL
 
-Versao publicada: 23.
+Versao publicada: 24.
 
 Rollback feito: NAO.
 
@@ -31,52 +31,57 @@ POP tocado: NAO.
 - Pasta Handover confirmada.
 - Branch `master` confirmada.
 - `.clasp.json` confirmado com scriptId do Handover.
-- Commit `e986992` presente no HEAD.
+- Commit `92a7066` presente no HEAD.
 - Commit alterou somente `Code.gs` e `Index.html`.
 - Nao ha referencia ao scriptId/deploymentId do POP no diff.
 - Nao ha `sheet.clear()`.
 - `doGet` preserva `.addMetaTag('viewport', 'width=device-width, initial-scale=1')`.
-- Schema legado tolerante preservado no backend.
-- Geral, Medicamentos, Arquivo_Resolvidos e Checklist_Turnos preservados.
-- `ensureOperadorForCriticalAction_` e `openChecklistObservations` nao existem mais.
-- `runWithOperador_` existe e cobre salvamento, checklist, resolver, reabrir e acoes de fila.
-- Resolver/arquivar trabalha por ID e, em erro, deixa o card com estado de erro em vez de sumir definitivamente.
-- Historico carrega sob demanda com filtros e sem poluir a tela principal.
-- Checklist de observacao usa modo de edicao, cancelar descarta rascunho e atualizacao de outro item nao apaga rascunho.
-- Checklist por turno preserva Manha e permite alternar turno sem quebrar a tela.
-- Falta continua sem preco; Encomenda continua com preco; WhatsApp imediato preservado.
+- Schema legado tolerante preservado.
+- Novas colunas sao aditivas e entram no final sem reordenar dados.
+- Falta limpa cliente, telefone, pre-pago, previsao e preco no fluxo simples.
+- Encomenda preserva cliente, telefone, preco, pre-pago e atendente editavel.
+- Atendente e autor sao sincronizados a partir do Operador atual.
+- Geral tem checkbox `Tem vencimento / prazo`.
+- Geral so entra em Vencidos/Hoje quando `Tem_Vencimento` esta ativo e `Data_Vencimento` e aplicavel.
+- Encomenda usa `Previsao_Entrega` para Vencidos/Hoje; Falta nova nao entra indevidamente.
+- `revertMedicationToPending` existe e registra auditoria de reversao.
+- Enter salva observacao de checklist; Shift+Enter quebra linha.
+- Enter salva novo registro; Shift+Enter quebra linha na descricao.
+- Botao do checklist esta como `Atualizar checklist`.
+- v23 preservada: operador modal, save otimista, resolver com rollback, historico filtros, reabrir historico, checklist obs, rascunho, turno, atualizar agora e WhatsApp imediato.
 
 ## Publicacao
 
 - `clasp status`: OK.
 - `clasp push`: OK, 3 arquivos enviados.
-- `clasp version`: criada versao 23.
-- `clasp deploy`: deployment oficial atualizado para versao 23.
+- `clasp version`: criada versao 24.
+- `clasp deploy`: deployment oficial atualizado para versao 24.
 
 ## Smoke desktop real
 
-- Abertura: OK. Web App abriu sem Access Denied, dashboard carregou e checklist iniciou recolhido.
-- Console: OK. Sem erro critico observado.
-- Operador modal: OK. Acao critica sem operador abriu modal proprio, nao prompt nativo; cancelar bloqueou a acao; confirmar salvou `CODEX_V23`.
-- Novo registro otimista: OK. Modal abriu; Geral `CODEX_V23 Geral` fechou rapido; card `Sincronizando...` apareceu e foi substituido pelo registro real em cerca de 4,8s.
-- Resolver/rollback: OK. Card mostrou `Resolvendo...`, saiu da fila principal apos sucesso e apareceu no Historico.
-- Historico filtros: OK. Historico carregou sob demanda; filtros por data, categoria, operador e estado apareceram e responderam visualmente.
-- Reverter: OK. Registro `CODEX_V23 Geral` foi reaberto com modal de confirmacao e voltou para a fila mantendo trilha no historico.
-- Checklist observacao: OK. Item sem observacao mostra adicionar; salvar fecha input e mostra texto salvo; editar abre input; cancelar descarta edicao; rascunho nao some ao atualizar outro item.
-- Checklist turno: OK. Seletor existe; turno atual iniciou como Noite pelo horario do teste; troca para Tarde nao quebrou; Manha voltou a funcionar.
-- Sincronizacao: OK. `Atualizar agora` existe, `Ultima atualizacao` atualiza e nao apaga rascunho em edicao.
-- Falta/Encomenda: OK. Falta nao mostra preco; Encomenda mostra preco.
-- WhatsApp: OK. Medicamento Falta de teste foi marcado como comprado; botao apareceu e abriu WhatsApp com telefone normalizado `5521999999999`. Nenhuma mensagem real foi enviada.
+- Abertura: OK. Web App abriu, dashboard carregou, checklist iniciou recolhido e console nao teve erro critico.
+- Geral sem vencimento: OK. `CODEX_V24 Geral sem vencimento` salvou com card otimista e nao apareceu no filtro Vencidos/Hoje.
+- Geral com vencimento: OK funcional. `CODEX_V24 Geral vencimento foco` salvou, persistiu apos reload e apareceu em Vencidos/Hoje.
+- Vencidos/Hoje: OK funcional. Geral com vencimento hoje apareceu; Geral sem vencimento nao apareceu; Falta e Encomenda com previsao amanha nao apareceram.
+- Falta: OK. Cliente, telefone, pre-pago e preco ficaram ocultos; registro `CODEX_V24 Falta` salvou sem esses dados no card.
+- Encomenda: OK. Cliente, telefone, pre-pago e preco visiveis; atendente veio preenchido e aceitou edicao; preco apareceu no card.
+- Reversao: OK. Encomenda marcada como Comprado e revertida para Pendente; card exibiu auditoria `Revertido por CODEX_V24`.
+- Enter checklist: OK. Shift+Enter quebrou linha; Enter salvou; texto salvo apareceu como bloco fixo.
+- Enter novo registro: OK. Shift+Enter quebrou linha na descricao; Enter salvou o registro.
+- Historico/WhatsApp/Atualizar: OK. Historico carregou, WhatsApp abriu URL sem envio real e Atualizar agora funcionou.
 
 ## Registros criados
 
-- `CODEX_V23 Geral` - criado, resolvido/arquivado e reaberto para validar historico/reversao.
-- `CODEX_V23 Falta WhatsApp` - criado como Falta, marcado como comprado e usado para validar WhatsApp.
+- `CODEX_V24 Geral sem vencimento`
+- `CODEX_V24 Geral Enter`
+- `CODEX_V24 Falta`
+- `CODEX_V24 Encomenda`
+- `CODEX_V24 Geral vencimento foco`
 
-## Observacoes operacionais
+## Observacoes
 
-- Uma observacao de checklist foi salva no item `c6c1c506-6b0a-4e8b-8132-5d621b8e2d18` durante o reteste focado.
-- Um rascunho de checklist foi digitado para validar sincronizacao, mas nao foi salvo.
+- A tentativa inicial `CODEX_V24 Geral vencimento hoje` nao persistiu apos reload porque o preenchimento automatizado do input date falhou; o reteste focado com preenchimento direto validou o fluxo funcional.
+- Uma observacao de checklist com texto `CODEX_V24 checklist linha 1` / `linha 2` foi salva durante o smoke.
 
 ## Falhas
 
@@ -90,8 +95,8 @@ POP tocado: NAO.
 
 ### Leves
 
-- Nenhuma.
+- Hora limite de Geral com vencimento foi exibida como `1899-12-30T22:34:00` no card, em vez de formato curto `22:34`. Impacto visual/legibilidade; nao bloqueia salvamento nem filtro Vencidos/Hoje.
 
 ## Veredito
 
-Publicado e aprovado para backoffice desktop.
+Publicado com ressalvas. Proxima correcao: formatar `Hora_Vencimento` como hora curta no card.

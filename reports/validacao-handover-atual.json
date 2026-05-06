@@ -1,15 +1,15 @@
 {
   "projeto": "Handover - Drogarias Conceito",
-  "status_geral": "OK",
+  "status_geral": "PARCIAL",
   "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
   "branch": "master",
-  "commit_validado": "e986992",
-  "mensagem_commit": "Handover desktop UX: operador modal, resolver rollback, checklist obs, histórico filtros, sync checklist por turno e saves otimistas.",
+  "commit_validado": "92a7066",
+  "mensagem_commit": "Handover v23: vencimento Geral, Falta/Encomenda campos, revert medicamento, Enter checklist/modal",
   "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
   "spreadsheetId_informado": "1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8",
   "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
   "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
-  "versao_publicada": 23,
+  "versao_publicada": 24,
   "rollback_feito": false,
   "pop_tocado": false,
   "pre_deploy": {
@@ -21,105 +21,105 @@
     "sheet_clear": false,
     "do_get_viewport_preservado": true,
     "schema_legado_tolerante_preservado": true,
+    "novas_colunas_aditivas": true,
     "pop_referenciado": false,
-    "ensureOperadorForCriticalAction_presente": false,
-    "openChecklistObservations_presente": false,
-    "runWithOperador_presente": true,
-    "resolver_por_id_com_rollback_visual": true,
-    "historico_sob_demanda": true,
-    "checklist_turno": true,
-    "whatsapp_imediato": true
+    "falta_fluxo_simples": true,
+    "encomenda_campos_preservados": true,
+    "geral_vencimento": true,
+    "revertMedicationToPending": true,
+    "enter_checklist": true,
+    "enter_novo_registro": true,
+    "v23_preservada": true
   },
   "publicacao": {
     "clasp_status": "OK",
     "clasp_push": "OK",
-    "clasp_version": 23,
+    "clasp_version": 24,
     "clasp_deploy": "OK"
   },
   "smoke_desktop": {
     "abertura": "OK",
-    "console_erro_critico": false,
-    "operador_modal": {
-      "modal_proprio": true,
-      "prompt_nativo": false,
-      "cancelar_bloqueou_acao": true,
-      "confirmar_salvou_operador": true
+    "geral_sem_vencimento": {
+      "resultado": "OK",
+      "titulo": "CODEX_V24 Geral sem vencimento",
+      "nao_entrou_vencidos_hoje": true
     },
-    "novo_registro_otimista": {
-      "modal": true,
-      "modal_fechou_rapido": true,
-      "sincronizando_apareceu": true,
-      "card_real_substituiu": true,
-      "tempo_ms_aproximado": 4828
+    "geral_com_vencimento": {
+      "resultado": "OK_FUNCIONAL",
+      "titulo_validado": "CODEX_V24 Geral vencimento foco",
+      "persistiu_apos_reload": true,
+      "entrou_vencidos_hoje": true,
+      "ressalva_hora_formatada": "1899-12-30T22:34:00"
     },
-    "resolver": {
-      "resolvendo_visual": true,
-      "removeu_fila_principal": true,
-      "apareceu_historico": true
+    "vencidos_hoje": {
+      "geral_com_vencimento_apareceu": true,
+      "geral_sem_vencimento_nao_apareceu": true,
+      "falta_nao_apareceu": true,
+      "encomenda_amanha_nao_apareceu": true
     },
-    "historico": {
-      "carregou": true,
-      "filtros_visiveis": true,
-      "filtros_testados_visual": [
-        "data",
-        "categoria",
-        "operador",
-        "estado"
-      ]
+    "falta": {
+      "resultado": "OK",
+      "cliente_oculto": true,
+      "telefone_oculto": true,
+      "pre_pago_oculto": true,
+      "preco_oculto": true,
+      "card_sem_cliente_telefone_preco": true
     },
-    "reverter": {
-      "modal_confirmacao": true,
-      "executado": true,
-      "voltou_para_fila": true
+    "encomenda": {
+      "resultado": "OK",
+      "campos_visiveis": true,
+      "atendente_preenchido": true,
+      "atendente_editavel": true,
+      "preco_no_card": true
     },
-    "checklist_observacao": {
-      "item_sem_obs_mostra_adicionar": true,
-      "salvar_fecha_input": true,
-      "mostra_texto_salvo": true,
-      "editar_abre_input": true,
-      "cancelar_descarta_edicao": true,
-      "rascunho_nao_some_ao_atualizar_outro_item": true
+    "reversao": {
+      "resultado": "OK",
+      "botao_reverter": true,
+      "status_pendente_apos_reversao": true,
+      "auditoria_visual": true
     },
-    "checklist_turno": {
-      "seletor_visivel": true,
-      "turno_inicial_no_horario_do_teste": "Noite",
-      "tarde_sem_quebra": true,
-      "manha_funcionando": true
+    "enter_checklist": {
+      "resultado": "OK",
+      "shift_enter_quebrou_linha": true,
+      "enter_salvou": true,
+      "texto_bloco_fixo": true
     },
-    "sincronizacao": {
-      "botao_atualizar_agora": true,
-      "ultima_atualizacao": true,
-      "nao_apaga_rascunho": true
+    "enter_novo_registro": {
+      "resultado": "OK",
+      "shift_enter_descricao": true,
+      "enter_salvou": true
     },
-    "falta_encomenda": {
-      "falta_sem_preco": true,
-      "encomenda_com_preco": true
-    },
-    "whatsapp": {
-      "botao_apareceu": true,
-      "abriu_url": true,
-      "url": "https://api.whatsapp.com/send/?phone=5521999999999&text=Ol%C3%A1%2C+CODEX.+Seu+medicamento+CODEX_V23+Falta+WhatsApp+chegou+na+Drogarias+Conceito.%0A%0APode+retirar+na+loja+hoje.%0A%0ASe+preferir%2C+responda+esta+mensagem+que+verificamos+a+melhor+forma+de+entrega.&type=phone_number&app_absent=0",
-      "mensagem_real_enviada": false
+    "regressao": {
+      "historico_carrega": true,
+      "whatsapp_abriu": true,
+      "whatsapp_url": "https://api.whatsapp.com/send/?phone=5521999999999&text=Ol%C3%A1%2C+CODEX.+Seu+medicamento+CODEX_V24+Encomenda+chegou+na+Drogarias+Conceito.%0A%0APode+retirar+na+loja+hoje.%0A%0ASe+preferir%2C+responda+esta+mensagem+que+verificamos+a+melhor+forma+de+entrega.&type=phone_number&app_absent=0",
+      "mensagem_real_enviada": false,
+      "atualizar_agora": true,
+      "checklist_turno": true
     }
   },
   "registros_criados": [
-    "CODEX_V23 Geral",
-    "CODEX_V23 Falta WhatsApp"
+    "CODEX_V24 Geral sem vencimento",
+    "CODEX_V24 Geral Enter",
+    "CODEX_V24 Falta",
+    "CODEX_V24 Encomenda",
+    "CODEX_V24 Geral vencimento foco"
   ],
-  "alteracoes_checklist": [
-    {
-      "item_id": "c6c1c506-6b0a-4e8b-8132-5d621b8e2d18",
-      "acao": "observacao salva em reteste focado"
-    },
-    {
-      "acao": "rascunho digitado durante teste de sincronizacao",
-      "salvo": false
-    }
+  "observacoes": [
+    "A tentativa inicial CODEX_V24 Geral vencimento hoje nao persistiu apos reload por falha de preenchimento automatizado do input date; reteste focado validou o fluxo.",
+    "Observacao de checklist com duas linhas foi salva durante o smoke."
   ],
   "falhas": {
     "criticas": [],
     "medias": [],
-    "leves": []
+    "leves": [
+      {
+        "area": "Geral com vencimento",
+        "mensagem": "Hora limite aparece como 1899-12-30T22:34:00 no card, em vez de formato curto 22:34.",
+        "impacto": "Legibilidade ruim, sem bloqueio funcional.",
+        "arquivo_funcao_provavel": "Index.html / formatGeralVencimentoCardLine_ ou Code.gs / normalizeItemForClient_"
+      }
+    ]
   },
-  "veredito": "Publicado e aprovado para backoffice desktop."
+  "veredito": "Publicado com ressalvas. Proxima correcao: formatar Hora_Vencimento como hora curta no card."
 }
