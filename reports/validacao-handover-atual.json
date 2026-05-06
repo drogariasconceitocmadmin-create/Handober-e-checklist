@@ -1,125 +1,47 @@
 {
   "projeto": "Handover - Drogarias Conceito",
-  "status_geral": "PARCIAL",
+  "status_geral": "OK",
   "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
   "branch": "master",
-  "commit_validado": "92a7066",
-  "mensagem_commit": "Handover v23: vencimento Geral, Falta/Encomenda campos, revert medicamento, Enter checklist/modal",
+  "commit_validado": "a9524a0",
+  "mensagem_commit": "Handover: formata Hora_Vencimento no card Geral como HH:mm",
   "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
-  "spreadsheetId_informado": "1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8",
   "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
   "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
-  "versao_publicada": 24,
+  "versao_publicada": 25,
   "rollback_feito": false,
   "pop_tocado": false,
   "pre_deploy": {
     "resultado": "OK",
     "arquivos_alterados_commit": [
-      "Code.gs",
       "Index.html"
     ],
-    "sheet_clear": false,
-    "do_get_viewport_preservado": true,
-    "schema_legado_tolerante_preservado": true,
-    "novas_colunas_aditivas": true,
-    "pop_referenciado": false,
-    "falta_fluxo_simples": true,
-    "encomenda_campos_preservados": true,
-    "geral_vencimento": true,
-    "revertMedicationToPending": true,
-    "enter_checklist": true,
-    "enter_novo_registro": true,
-    "v23_preservada": true
+    "code_gs_alterado": false,
+    "schema_alterado": false,
+    "payloads_alterados": false,
+    "vencidos_hoje_alterado": false,
+    "pop_referenciado": false
   },
   "publicacao": {
     "clasp_status": "OK",
     "clasp_push": "OK",
-    "clasp_version": 24,
+    "clasp_version": 25,
     "clasp_deploy": "OK"
   },
-  "smoke_desktop": {
+  "smoke_minimo": {
     "abertura": "OK",
-    "geral_sem_vencimento": {
-      "resultado": "OK",
-      "titulo": "CODEX_V24 Geral sem vencimento",
-      "nao_entrou_vencidos_hoje": true
-    },
-    "geral_com_vencimento": {
-      "resultado": "OK_FUNCIONAL",
-      "titulo_validado": "CODEX_V24 Geral vencimento foco",
-      "persistiu_apos_reload": true,
-      "entrou_vencidos_hoje": true,
-      "ressalva_hora_formatada": "1899-12-30T22:34:00"
-    },
-    "vencidos_hoje": {
-      "geral_com_vencimento_apareceu": true,
-      "geral_sem_vencimento_nao_apareceu": true,
-      "falta_nao_apareceu": true,
-      "encomenda_amanha_nao_apareceu": true
-    },
-    "falta": {
-      "resultado": "OK",
-      "cliente_oculto": true,
-      "telefone_oculto": true,
-      "pre_pago_oculto": true,
-      "preco_oculto": true,
-      "card_sem_cliente_telefone_preco": true
-    },
-    "encomenda": {
-      "resultado": "OK",
-      "campos_visiveis": true,
-      "atendente_preenchido": true,
-      "atendente_editavel": true,
-      "preco_no_card": true
-    },
-    "reversao": {
-      "resultado": "OK",
-      "botao_reverter": true,
-      "status_pendente_apos_reversao": true,
-      "auditoria_visual": true
-    },
-    "enter_checklist": {
-      "resultado": "OK",
-      "shift_enter_quebrou_linha": true,
-      "enter_salvou": true,
-      "texto_bloco_fixo": true
-    },
-    "enter_novo_registro": {
-      "resultado": "OK",
-      "shift_enter_descricao": true,
-      "enter_salvou": true
-    },
-    "regressao": {
-      "historico_carrega": true,
-      "whatsapp_abriu": true,
-      "whatsapp_url": "https://api.whatsapp.com/send/?phone=5521999999999&text=Ol%C3%A1%2C+CODEX.+Seu+medicamento+CODEX_V24+Encomenda+chegou+na+Drogarias+Conceito.%0A%0APode+retirar+na+loja+hoje.%0A%0ASe+preferir%2C+responda+esta+mensagem+que+verificamos+a+melhor+forma+de+entrega.&type=phone_number&app_absent=0",
-      "mensagem_real_enviada": false,
-      "atualizar_agora": true,
-      "checklist_turno": true
-    }
+    "dashboard_carrega": true,
+    "registro_validado": "CODEX_V24 Geral vencimento foco",
+    "card_texto_contem_hhmm": true,
+    "card_texto_contem_iso_antigo": false,
+    "vencidos_hoje_funciona": true,
+    "vencidos_hoje_contem_hhmm": true,
+    "console_erro_critico": false
   },
-  "registros_criados": [
-    "CODEX_V24 Geral sem vencimento",
-    "CODEX_V24 Geral Enter",
-    "CODEX_V24 Falta",
-    "CODEX_V24 Encomenda",
-    "CODEX_V24 Geral vencimento foco"
-  ],
-  "observacoes": [
-    "A tentativa inicial CODEX_V24 Geral vencimento hoje nao persistiu apos reload por falha de preenchimento automatizado do input date; reteste focado validou o fluxo.",
-    "Observacao de checklist com duas linhas foi salva durante o smoke."
-  ],
   "falhas": {
     "criticas": [],
     "medias": [],
-    "leves": [
-      {
-        "area": "Geral com vencimento",
-        "mensagem": "Hora limite aparece como 1899-12-30T22:34:00 no card, em vez de formato curto 22:34.",
-        "impacto": "Legibilidade ruim, sem bloqueio funcional.",
-        "arquivo_funcao_provavel": "Index.html / formatGeralVencimentoCardLine_ ou Code.gs / normalizeItemForClient_"
-      }
-    ]
+    "leves": []
   },
-  "veredito": "Publicado com ressalvas. Proxima correcao: formatar Hora_Vencimento como hora curta no card."
+  "veredito": "Publicado e aprovado. Hora_Vencimento exibida como HH:mm."
 }
