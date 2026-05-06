@@ -2303,18 +2303,12 @@
 
       function openNovoRegistroPendencia_() {
         closeNovoRegistroDropdown_();
-        categorySelect.value = 'Geral';
-        updateVisibleFields();
-        updateMedicinePriceVisibility_();
-        openFormModal_();
+        openFormModal_('Geral');
       }
 
       function openNovoRegistroMedicamento_() {
         closeNovoRegistroDropdown_();
-        categorySelect.value = 'Medicamentos';
-        updateVisibleFields();
-        updateMedicinePriceVisibility_();
-        openFormModal_();
+        openFormModal_('Medicamentos');
       }
 
       function bindMedQueueSearch_() {
@@ -4254,11 +4248,18 @@
         clearStatus(formStatus);
       }
 
-      function openFormModal_() {
+      function openFormModal_(initialCategory) {
         if (!formModalOverlay) {
           return;
         }
         requestForm.reset();
+        var cat =
+          initialCategory === 'Medicamentos'
+            ? 'Medicamentos'
+            : initialCategory === 'Geral'
+            ? 'Geral'
+            : 'Geral';
+        categorySelect.value = cat;
         updateVisibleFields();
         updateMedicinePriceVisibility_();
         syncAutorFieldFromOperador_();
@@ -4391,10 +4392,7 @@
         var ps = row.__pendingSave;
         removeOptimisticPlaceholder_(id, ps.tab);
         renderAll();
-        openFormModal_();
-        categorySelect.value = ps.tab;
-        updateVisibleFields();
-        updateMedicinePriceVisibility_();
+        openFormModal_(ps.tab);
         var pl = ps.payload;
         if (ps.tab === 'Geral') {
           document.getElementById('autor').value = pl.autor || '';
