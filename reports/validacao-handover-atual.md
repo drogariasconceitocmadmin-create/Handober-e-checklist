@@ -1,4 +1,4 @@
-# Validacao Handover - commit a9524a0
+# Validacao Handover - commit 7468d4e
 
 Projeto: Handover - Drogarias Conceito
 
@@ -6,7 +6,7 @@ Pasta: `C:\Users\Marco\Desktop\Sis Drogaria\Handover`
 
 Branch: `master`
 
-Commit validado: `a9524a0 - Handover: formata Hora_Vencimento no card Geral como HH:mm`
+Commit validado: `7468d4e - feat(handover): layout desktop fase 1 com header, cards e abas`
 
 ScriptId: `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
 
@@ -16,9 +16,9 @@ URL oficial: `https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklp
 
 ## Resultado
 
-Status geral: OK
+Status geral: PARCIAL
 
-Versao publicada: 25.
+Versao publicada: 26.
 
 Rollback feito: NAO.
 
@@ -29,29 +29,45 @@ POP tocado: NAO.
 - Pasta Handover confirmada.
 - Branch `master` confirmada.
 - `.clasp.json` confirmado com scriptId do Handover.
-- Commit `a9524a0` presente no HEAD.
-- Commit alterou somente `Index.html`.
-- `Code.gs` nao foi alterado.
-- Schema nao foi alterado.
-- Payloads nao foram alterados.
-- Vencidos/Hoje nao foi alterado.
+- Commit `7468d4e` presente no HEAD.
+- `Code.gs` nao foi alterado no commit.
+- Alteracao funcional principal esta em `Index.html`.
+- `tasks/current.md` e `reports/cursor-atual.md` foram atualizados.
+- Nao existe `sheet.clear()` no diff.
+- `doGet` e backend nao foram alterados.
+- Nao houve alteracao de schema.
 - Nao ha referencia ao scriptId/deploymentId do POP no diff.
-- Patch adiciona apenas formatacao de `Hora_Vencimento` para exibicao no card Geral.
+- Checklist preserva drafts/observacao.
+- Historico continua usando `fetchHistoricoResolvidos`.
+- WhatsApp imediato, reversao, resolver com rollback e filtro Vencidos/Hoje continuam presentes no codigo.
 
 ## Publicacao
 
 - `clasp status`: OK.
 - `clasp push`: OK, 3 arquivos enviados.
-- `clasp version`: criada versao 25.
-- `clasp deploy`: deployment oficial atualizado para versao 25.
+- `clasp version`: criada versao 26.
+- `clasp deploy`: deployment oficial atualizado para versao 26.
+- URL oficial mantida.
 
-## Smoke minimo real
+## Smoke desktop real
 
-- Abertura: OK. Web App abriu e dashboard carregou.
-- Hora vencimento: OK. Registro `CODEX_V24 Geral vencimento foco` mostra `Vence: 05/05/2026 22:34`.
-- Valor antigo: OK. `1899-12-30T22:34:00` nao aparece no card.
-- Vencidos/Hoje: OK. Filtro mostra o registro com vencimento e continua exibindo `22:34`.
+- Abertura/layout: OK. Web App abriu sem erro critico, com header, cards e abas.
+- Header: OK. Nome/logo, Handover, Operador atual, Ultima atualizacao, Ultima acao, Atualizar agora e Novo registro aparecem.
+- Cards resumo: OK. Pendencias, Urgentes, Medicamentos solicitados, Comprados sem aviso e Checklist pendente aparecem; cards direcionam para abas/filtros principais.
+- Abas: OK. Pendencias, Medicamentos, Checklist e Historico aparecem e alternam.
+- Pendencias: OK. Fila usa cards; registro `CODEX_V26 Geral layout` aparece em Pendencias e nao aparece em Medicamentos.
+- Medicamentos: OK. Aba separada, filtros visuais funcionam, busca por texto funciona, `CODEX_V26 Falta layout` aparece em Medicamentos e nao aparece em Pendencias.
+- Novo Registro dropdown: PARCIAL. Dropdown abre e mostra opcoes, mas a opcao `Medicamento solicitado` abre o modal ainda com categoria `Geral`; selecionando `Medicamentos` dentro do modal, o fluxo salva normalmente.
+- Checklist: OK. Aba abre, turno/filtros aparecem, categorias colapsaveis funcionam, rascunho de observacao foi preservado ao mudar status de outro item.
+- Historico: OK. Aba carrega sob demanda, filtros aparecem, itens resolvidos e acao Reabrir/Reverter aparecem.
+- Menu tres pontos: OK. Menu mostra `Ver detalhes`, `Copiar informacoes` e `Ver trilha de auditoria`; nao mostra `Imprimir`.
+- Regressao critica: OK. Falta continua sem preco, Encomenda continua com preco, WhatsApp abriu `api.whatsapp.com/send` com telefone normalizado em `55...`, Atualizar agora funciona sem erro critico, Vencidos/Hoje continua disponivel.
 - Console: OK. Sem erro critico observado.
+
+## Registros criados
+
+- `CODEX_V26 Geral layout`
+- `CODEX_V26 Falta layout`
 
 ## Falhas
 
@@ -61,7 +77,7 @@ POP tocado: NAO.
 
 ### Medias
 
-- Nenhuma.
+- Novo Registro > Medicamento solicitado abre o modal em categoria Geral. Impacto: operador precisa trocar manualmente a categoria para Medicamentos antes de salvar; o cadastro ainda funciona, mas o atalho do novo layout nao cumpre o comportamento esperado.
 
 ### Leves
 
@@ -69,4 +85,4 @@ POP tocado: NAO.
 
 ## Veredito
 
-Publicado e aprovado. Hora_Vencimento exibida como HH:mm.
+Publicado com ressalva. Proxima correcao: ajustar o dropdown `Medicamento solicitado` para abrir o modal ja em `Medicamentos`.
