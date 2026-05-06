@@ -2,7 +2,7 @@
 
 ## Título
 
-**Validar e publicar P0 de performance operacional do Handover**
+**Handover v23 — validação desktop/backoffice e skills de domínio**
 
 ---
 
@@ -10,53 +10,44 @@
 
 | Campo | Valor |
 |--------|--------|
-| **Estado** | **Concluída — publicada e validada na versão 19** |
-| **Versão publicada** | 19 |
-| **Commit funcional (P0)** | `e9e78d8` |
-| **Commit de governança (repo na época do fluxo Codex)** | `f4a36e3` |
-| **DeploymentId v19** | `AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw` |
-| **URL oficial** | https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec |
+| **Estado** | **Concluído / publicado** |
+| **Versão** | **23** |
+| **Deployment oficial** | Mantido (mesmo Web App Handover; ver `AGENTS.md` do projeto e skill `aios/skills/handover/SKILL.md`). |
+| **Relatórios (canônicos)** | `reports/validacao-handover-atual.md`, `reports/validacao-handover-atual.json` |
+| **Commit de relatórios** | `62d8e32` |
 
-### Ressalva administrativa (resolvida por registro)
+### Confirmações de isolamento
 
-O resultado foi classificado como **PARCIAL** apenas por alinhamento de HEAD / necessidade de `clasp push --force` com HEAD em commit de governança (**sem alteração funcional** face ao P0 em **`e9e78d8`**). Os **testes funcionais passaram**. A ressalva está **encerrada para governança** com o relatório em:
-
-- `reports/validacao-handover-atual.md`
-- `reports/validacao-handover-atual.json`
-
-**POP tocado:** não.
+- **POP:** não tocado neste ciclo de skills/tasks.
+- **Código Apps Script / Web App:** não alterado nesta entrega (somente documentação em `aios/skills/` e `tasks/current.md`).
 
 ---
 
-## Contexto (histórico)
+## Escopo validado na v23 (referência para skills)
 
-- **Commit de referência funcional:** `e9e78d8` (UI otimista, Falta sem preço, WhatsApp imediato, checklist com operador/responsável, histórico/resolvidos lazy, payloads mínimos no backend).
-- **Foco:** desktop na loja.
-
----
-
-## Critérios de validação (todos atendidos nos testes funcionais)
-
-1. **UI otimista** — salvamentos Geral/Medicamentos: feedback imediato (Salvando… / Sincronizando… / erro claro).
-2. **Medicamento Falta** — sem campo de preço na prática; sem “R$” no card; persistência ok.
-3. **Medicamento Encomenda** — preço opcional; negativo bloqueado.
-4. **WhatsApp** — abertura imediata do `wa.me`; tentativa registrada em background; UI atualiza sem travar a fila.
-5. **Checklist** — filtros; Feito visível em **Todos**; responsável e horário; próximo item sem espera global longa.
-6. **Operador atual** — nome obrigatório ou prompt em ações críticas; persistência em `localStorage`.
-7. **Histórico / Resolvidos** — filtro carrega arquivo; cards legíveis.
+| Área | Conteúdo |
+|------|-----------|
+| **Checklist** | Observação em leitura/edição, rascunho preservado, filtros de visualização, seletor de turno (Manhã/Tarde/Noite), `generateChecklistForTurno` no fluxo de refresh. |
+| **Histórico / Resolvidos** | Carga sob demanda, filtros (datas, categoria, estado, operador), reabrir/reverter com modal e trilha (`Estado_Arquivo`, reabertura, vínculos). |
+| **Sincronização** | “Atualizar agora”, carimbo de última atualização, auto-refresh leve com guardas (modais / edição de observação), merge sem descartar rascunhos ou placeholders críticos. |
+| **UX desktop** | Modal de operador (sem `window.prompt`), novo registro otimista com modal fechando cedo, resolver Geral com **Resolvendo…** e rollback visível no card. |
 
 ---
 
-## Artefatos de saída
+## Skills específicas (v23)
 
-| Artefato | Função |
-|----------|--------|
-| **`reports/validacao-handover-atual.md`** | Relatório humano canônico da v19 |
-| **`reports/validacao-handover-atual.json`** | Registro estruturado (integrações / auditoria) |
-| `reports/cursor-atual.md` | Opcional / legado; se existir, não substitui os artefatos acima para a v19 |
+| Skill | Pasta |
+|-------|--------|
+| Checklist | `aios/skills/checklist-handover/SKILL.md` |
+| Histórico | `aios/skills/historico-resolvidos/SKILL.md` |
+| Sync / auditoria na UI | `aios/skills/handover-sync-audit/SKILL.md` |
+| UX desktop | `aios/skills/handover-desktop-ux/SKILL.md` |
+
+Skills gerais existentes continuam válidas: `handover`, `gas-safety`, `sheets-schema`, `smoke-handover`, `codex-handover-deploy` (deploy apenas com autorização).
 
 ---
 
-## Deploy
+## Próximos passos sugeridos (opcional)
 
-Publicação realizada pelo Codex na versão 19; próximos deploys seguir `aios/skills/codex-handover-deploy/SKILL.md`.
+- Rodar smoke conforme `smoke-handover` após qualquer mudança futura em `Code.gs` / `Index.html`.
+- Atualizar relatórios em `reports/` quando houver nova versão publicada e registrar novo commit de relatório neste arquivo.
