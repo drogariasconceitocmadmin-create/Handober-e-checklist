@@ -3,78 +3,117 @@
   "status_geral": "OK",
   "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
   "branch": "master",
-  "commit_validado": "880029c",
-  "mensagem_commit": "fix(checklist): preserve observation drafts across status updates and re-render",
+  "commit_validado": "e986992",
+  "mensagem_commit": "Handover desktop UX: operador modal, resolver rollback, checklist obs, histórico filtros, sync checklist por turno e saves otimistas.",
   "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
   "spreadsheetId_informado": "1tHDX3I5yVx2UioNki695UIoNxHjXxpxCuKZwv2l7Dv8",
   "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
   "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
-  "versao_publicada": 22,
+  "versao_publicada": 23,
   "rollback_feito": false,
   "pop_tocado": false,
   "pre_deploy": {
     "resultado": "OK",
     "arquivos_alterados_commit": [
+      "Code.gs",
       "Index.html"
     ],
-    "code_gs_alterado": false,
-    "schema_alterado": false,
     "sheet_clear": false,
+    "do_get_viewport_preservado": true,
+    "schema_legado_tolerante_preservado": true,
     "pop_referenciado": false,
-    "preservacoes": [
-      "checklist",
-      "filtros do checklist",
-      "observacao",
-      "Feito/N/A/Pendente",
-      "operador/responsavel",
-      "schema legado v21"
-    ]
+    "ensureOperadorForCriticalAction_presente": false,
+    "openChecklistObservations_presente": false,
+    "runWithOperador_presente": true,
+    "resolver_por_id_com_rollback_visual": true,
+    "historico_sob_demanda": true,
+    "checklist_turno": true,
+    "whatsapp_imediato": true
   },
   "publicacao": {
     "clasp_status": "OK",
     "clasp_push": "OK",
-    "clasp_version": 22,
+    "clasp_version": 23,
     "clasp_deploy": "OK"
   },
   "smoke_desktop": {
     "abertura": "OK",
-    "dashboard": "OK",
-    "checklist_inicial_recolhido": true,
     "console_erro_critico": false,
-    "checklist_total_itens_visiveis": 21,
-    "draft_texto": "CODEX_V22 RASCUNHO NAO PODE SUMIR",
-    "draft_apos_feito": "OK",
-    "draft_apos_na": "OK",
-    "draft_apos_pendente": "OK",
-    "draft_apos_filtros": "OK",
-    "observacao_persistiu_apos_reload": true,
-    "filtros": {
-      "todos": "OK",
-      "pendentes": "OK",
-      "feitos": "OK",
-      "feitos_hoje": "OK"
+    "operador_modal": {
+      "modal_proprio": true,
+      "prompt_nativo": false,
+      "cancelar_bloqueou_acao": true,
+      "confirmar_salvou_operador": true
     },
-    "regressao_minima": {
-      "modal_novo_registro": "OK",
-      "falta_sem_preco": "OK",
-      "encomenda_com_preco": "OK",
-      "historico_resolvidos": "OK"
+    "novo_registro_otimista": {
+      "modal": true,
+      "modal_fechou_rapido": true,
+      "sincronizando_apareceu": true,
+      "card_real_substituiu": true,
+      "tempo_ms_aproximado": 4828
+    },
+    "resolver": {
+      "resolvendo_visual": true,
+      "removeu_fila_principal": true,
+      "apareceu_historico": true
+    },
+    "historico": {
+      "carregou": true,
+      "filtros_visiveis": true,
+      "filtros_testados_visual": [
+        "data",
+        "categoria",
+        "operador",
+        "estado"
+      ]
+    },
+    "reverter": {
+      "modal_confirmacao": true,
+      "executado": true,
+      "voltou_para_fila": true
+    },
+    "checklist_observacao": {
+      "item_sem_obs_mostra_adicionar": true,
+      "salvar_fecha_input": true,
+      "mostra_texto_salvo": true,
+      "editar_abre_input": true,
+      "cancelar_descarta_edicao": true,
+      "rascunho_nao_some_ao_atualizar_outro_item": true
+    },
+    "checklist_turno": {
+      "seletor_visivel": true,
+      "turno_inicial_no_horario_do_teste": "Noite",
+      "tarde_sem_quebra": true,
+      "manha_funcionando": true
+    },
+    "sincronizacao": {
+      "botao_atualizar_agora": true,
+      "ultima_atualizacao": true,
+      "nao_apaga_rascunho": true
+    },
+    "falta_encomenda": {
+      "falta_sem_preco": true,
+      "encomenda_com_preco": true
+    },
+    "whatsapp": {
+      "botao_apareceu": true,
+      "abriu_url": true,
+      "url": "https://api.whatsapp.com/send/?phone=5521999999999&text=Ol%C3%A1%2C+CODEX.+Seu+medicamento+CODEX_V23+Falta+WhatsApp+chegou+na+Drogarias+Conceito.%0A%0APode+retirar+na+loja+hoje.%0A%0ASe+preferir%2C+responda+esta+mensagem+que+verificamos+a+melhor+forma+de+entrega.&type=phone_number&app_absent=0",
+      "mensagem_real_enviada": false
     }
   },
-  "registros_criados": [],
+  "registros_criados": [
+    "CODEX_V23 Geral",
+    "CODEX_V23 Falta WhatsApp"
+  ],
   "alteracoes_checklist": [
     {
-      "item_id": "cdc719f4-51ef-4dd1-a15d-08e796b527d7",
-      "acao": "observacao salva",
-      "valor": "CODEX_V22 RASCUNHO NAO PODE SUMIR"
+      "item_id": "c6c1c506-6b0a-4e8b-8132-5d621b8e2d18",
+      "acao": "observacao salva em reteste focado"
     },
     {
-      "item_id": "0fc4e01a-9022-497c-b276-21eba9665842",
-      "acao": "marcado como Feito e depois voltou para Pendente"
-    },
-    {
-      "item_id": "06cbb6d3-422d-4368-a2cd-7ec2ddeecc00",
-      "acao": "marcado como N/A"
+      "acao": "rascunho digitado durante teste de sincronizacao",
+      "salvo": false
     }
   ],
   "falhas": {
@@ -82,5 +121,5 @@
     "medias": [],
     "leves": []
   },
-  "veredito": "Handover v22 publicado e aprovado. Bug do rascunho de observacao do checklist corrigido. POP nao foi tocado."
+  "veredito": "Publicado e aprovado para backoffice desktop."
 }
