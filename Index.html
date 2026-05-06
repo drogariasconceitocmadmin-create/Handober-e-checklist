@@ -7,18 +7,23 @@
     <title>Handover - Drogarias Conceito</title>
     <style>
       :root {
-        --bg: #f3f5f8;
+        --bg: #f6f9fe;
+        --bg-alt: #f7faff;
         --card: #ffffff;
-        --border: #d5d9e0;
-        --text: #1f2937;
-        --muted: #6b7280;
+        --border: #e2e8f0;
+        --text: #0b1b3a;
+        --muted: #64748b;
         --primary: #2563eb;
         --primary-dark: #1d4ed8;
         --success: #15803d;
-        --warning: #b45309;
-        --danger: #b91c1c;
+        --whatsapp: #16a34a;
+        --warning: #ea580c;
+        --danger: #dc2626;
         --danger-bg: #fee2e2;
         --chip: #eef2ff;
+        --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+        --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.07);
+        --radius: 14px;
       }
 
       * {
@@ -33,18 +38,300 @@
       body {
         margin: 0;
         max-width: 100%;
-        background: var(--bg);
+        background: linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 40%);
         color: var(--text);
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: system-ui, -apple-system, 'Segoe UI', Arial, Helvetica, sans-serif;
         overflow-x: hidden;
       }
 
       .page {
         min-width: 0;
-        max-width: 1120px;
+        max-width: 1280px;
         width: 100%;
         margin: 0 auto;
-        padding: 16px;
+        padding: 20px 18px 32px;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      .ho-muted {
+        color: var(--muted);
+      }
+
+      .ho-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-md);
+      }
+
+      .ho-card-pad {
+        padding: 14px 18px;
+      }
+
+      .app-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .app-header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        font-weight: 800;
+        font-size: 15px;
+        letter-spacing: -0.02em;
+      }
+
+      .brand-sep {
+        width: 1px;
+        height: 28px;
+        background: var(--border);
+        flex-shrink: 0;
+      }
+
+      .brand-product {
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .app-header-right {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 10px 14px;
+        justify-content: flex-end;
+      }
+
+      .app-header-right .field {
+        margin: 0;
+      }
+
+      .app-header-right label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .app-header-right input[type='text'] {
+        min-width: 160px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 13px;
+      }
+
+      .sync-label {
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .btn-primary-header {
+        border: 0;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #fff;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px 16px;
+      }
+
+      .btn-primary-header:hover {
+        background: var(--primary-dark);
+      }
+
+      .dropdown-root {
+        position: relative;
+      }
+
+      .dropdown-panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        min-width: 280px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        z-index: 40;
+        padding: 6px;
+      }
+
+      .dropdown-panel button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: transparent;
+        color: var(--text);
+        border-radius: 10px;
+        padding: 10px 12px;
+        border: 0;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .dropdown-panel button:hover {
+        background: #f1f5f9;
+      }
+
+      .dropdown-help {
+        display: block;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+
+      .summary-box-click {
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+
+      .summary-box-click:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.09);
+      }
+
+      .summary-box-click:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
+
+      .main-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+        align-items: center;
+      }
+
+      .main-tab {
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px 16px;
+      }
+
+      .main-tab.active {
+        background: var(--chip);
+        border-color: #99a5d8;
+        color: #1e3a8a;
+      }
+
+      .main-tab-panel {
+        margin-bottom: 14px;
+      }
+
+      .queue-panel-head h2 {
+        margin: 0 0 6px;
+        font-size: 18px;
+      }
+
+      .queue-panel-head .queue-subtitle {
+        margin: 0 0 10px;
+      }
+
+      .med-search-row {
+        margin-bottom: 10px;
+      }
+
+      .med-search-row input {
+        width: 100%;
+        max-width: 360px;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 13px;
+      }
+
+      .queue-head-right {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .card-more {
+        position: relative;
+      }
+
+      .card-more-btn {
+        border: 1px solid var(--border) !important;
+        background: #f8fafc !important;
+        color: var(--text) !important;
+        border-radius: 10px !important;
+        padding: 6px 10px !important;
+        font-size: 18px !important;
+        line-height: 1 !important;
+        font-weight: 700 !important;
+      }
+
+      .card-more-menu {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 4px);
+        min-width: 220px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        z-index: 25;
+        padding: 6px;
+      }
+
+      .card-more-menu button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        background: transparent !important;
+        color: var(--text) !important;
+        padding: 8px 10px !important;
+        border-radius: 8px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
+      }
+
+      .card-more-menu button:hover:not(:disabled) {
+        background: #f1f5f9 !important;
+      }
+
+      .card-more-menu button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .card-detail-pre {
+        white-space: pre-wrap;
+        font-size: 13px;
+        max-height: 52vh;
+        overflow: auto;
+        margin: 0;
+        padding: 12px;
+        background: #f8fafc;
+        border-radius: 10px;
+        border: 1px solid var(--border);
       }
 
       .toolbar,
@@ -572,10 +859,6 @@
         gap: 6px;
       }
 
-      .hidden {
-        display: none !important;
-      }
-
       #toast-root {
         position: fixed;
         right: 16px;
@@ -733,7 +1016,7 @@
       }
 
       @media (max-width: 900px) {
-        .summary-grid {
+        .summary-strip {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
@@ -752,8 +1035,18 @@
           padding: 10px;
         }
 
-        .summary-grid {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        .summary-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .app-header-right {
+          justify-content: flex-start;
+        }
+
+        .dropdown-panel {
+          left: 0;
+          right: auto;
+          min-width: min(320px, calc(100vw - 24px));
         }
 
         .queue-head {
@@ -775,153 +1068,143 @@
   </head>
   <body>
     <main class="page">
-      <header class="header">
-        <h1>Handover - Drogarias Conceito</h1>
-        <p>Painel operacional para turno, pendências e medicamentos.</p>
+      <header class="app-header ho-card ho-card-pad">
+        <div class="app-header-left">
+          <span class="brand-mark">Drogarias Conceito</span>
+          <span class="brand-sep" aria-hidden="true"></span>
+          <span class="brand-product">Handover</span>
+        </div>
+        <div class="app-header-right">
+          <label class="field">
+            <span class="ho-muted">Operador atual</span><br>
+            <input
+              id="operador-atual"
+              type="text"
+              name="operador-atual"
+              autocomplete="name"
+              placeholder="Nome no checklist e ações"
+            >
+          </label>
+          <span id="last-sync-label" class="sync-label ho-muted">Última atualização: --</span>
+          <span id="last-action-label" class="sync-label ho-muted">Última ação: —</span>
+          <button type="button" id="refresh-dashboard-btn" class="light" onclick="refreshDashboardNow_()">
+            Atualizar agora
+          </button>
+          <div id="novo-registro-dropdown" class="dropdown-root">
+            <button type="button" id="novo-registro-trigger" class="btn-primary-header" aria-expanded="false">
+              Novo registro ▾
+            </button>
+            <div id="novo-registro-menu" class="dropdown-panel hidden" role="menu">
+              <button type="button" role="menuitem" onclick="openNovoRegistroPendencia_()">
+                <strong>Pendência da loja</strong><span class="dropdown-help">Registrar uma tarefa ou pendência</span>
+              </button>
+              <button type="button" role="menuitem" onclick="openNovoRegistroMedicamento_()">
+                <strong>Medicamento solicitado</strong><span class="dropdown-help">Registrar falta ou encomenda</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <section id="operation-summary" class="summary-grid"></section>
+      <section id="operation-summary" class="summary-strip"></section>
 
-      <section class="card sync-bar-row" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
-        <span id="last-sync-label" class="sync-label">Última atualização: --</span>
-        <button type="button" id="refresh-dashboard-btn" class="light" onclick="refreshDashboardNow_()">
-          Atualizar agora
-        </button>
-      </section>
+      <nav class="main-tabs ho-card ho-card-pad" aria-label="Áreas principais">
+        <button type="button" class="main-tab active" data-main-tab="pendencias">Pendências</button>
+        <button type="button" class="main-tab" data-main-tab="medicamentos">Medicamentos</button>
+        <button type="button" class="main-tab" data-main-tab="checklist">Checklist</button>
+        <button type="button" class="main-tab" data-main-tab="historico">Histórico</button>
+      </nav>
 
-      <section class="card operador-bar" style="margin-top: 10px;">
-        <div class="field">
-          <label for="operador-atual">Operador atual</label>
-          <input
-            id="operador-atual"
-            type="text"
-            name="operador-atual"
-            autocomplete="name"
-            placeholder="Nome usado em checklist e ações (salvo neste aparelho)"
-          >
-        </div>
-      </section>
-
-      <section class="toolbar card">
-        <div class="filter-group" id="queue-filters">
-          <button type="button" class="filter-button" data-filter="todos" onclick="setQueueFilter('todos')">
-            Todos
-          </button>
-          <button type="button" class="filter-button active" data-filter="pendentes" onclick="setQueueFilter('pendentes')">
-            Pendentes
-          </button>
-          <button type="button" class="filter-button" data-filter="comprados" onclick="setQueueFilter('comprados')">
-            Comprados
-          </button>
-          <button type="button" class="filter-button" data-filter="entregues" onclick="setQueueFilter('entregues')">
-            Entregues
-          </button>
-          <button
-            type="button"
-            class="filter-button"
-            data-filter="resolvidos"
-            onclick="setQueueFilter('resolvidos')"
-          >
-            Histórico / Resolvidos
-          </button>
-          <button
-            type="button"
-            class="filter-button"
-            data-filter="resolvidos_parcialmente"
-            onclick="setQueueFilter('resolvidos_parcialmente')"
-          >
-            Resolvidos parcialmente
-          </button>
-          <button
-            type="button"
-            class="filter-button"
-            data-filter="comprados_sem_aviso"
-            onclick="setQueueFilter('comprados_sem_aviso')"
-          >
-            Comprados sem aviso
-          </button>
-          <button
-            type="button"
-            class="filter-button"
-            data-filter="vencidos_hoje"
-            onclick="setQueueFilter('vencidos_hoje')"
-          >
-            Vencidos/Hoje
-          </button>
-        </div>
-        <div class="toolbar-actions">
-          <button id="toggle-form-btn" type="button" class="light" onclick="toggleFormPanel()">Novo registro</button>
-        </div>
-      </section>
-
-      <section class="card" style="margin-top: 10px;">
-        <h2 class="queue-title">Pendências operacionais</h2>
-        <p id="queue-subtitle" class="queue-subtitle"></p>
-        <div id="historico-filters-panel" class="historico-filters hidden"></div>
-        <div id="queue-list" class="queue-list"></div>
-        <div id="queue-empty" class="empty-box hidden">Nenhuma pendência para o filtro selecionado.</div>
-        <div id="queue-status" class="status" aria-live="polite"></div>
-      </section>
-
-      <section class="card" style="margin-top: 10px;">
-        <div class="checklist-top">
-          <h2 class="section-title" id="checklist-turn-title">Checklist do turno</h2>
-          <div class="field checklist-turn-field">
-            <label for="checklist-turno-select">Turno</label>
-            <select id="checklist-turno-select" onchange="onChecklistTurnoChange_(this.value)">
-              <option value="Manhã">Manhã</option>
-              <option value="Tarde">Tarde</option>
-              <option value="Noite">Noite</option>
-            </select>
+      <section id="panel-queue-wrap" class="main-tab-panel" data-main-tab-panel="queue">
+        <section class="card queue-panel-head">
+          <h2 id="queue-section-heading">Fila de pendências</h2>
+          <p id="queue-subtitle" class="queue-subtitle ho-muted"></p>
+          <div id="med-search-wrap" class="med-search-row hidden">
+            <label for="med-queue-search" class="ho-muted" style="display:block;font-size:12px;font-weight:700;margin-bottom:4px;">Buscar</label>
+            <input id="med-queue-search" type="search" placeholder="Medicamento ou atendente…" autocomplete="off">
           </div>
-          <button id="checklist-toggle-btn" type="button" class="light" onclick="toggleChecklistPanel()">
-            Abrir checklist
-          </button>
-        </div>
+          <div id="queue-filters-host"></div>
+          <div id="historico-filters-panel" class="historico-filters hidden"></div>
+          <div id="queue-list" class="queue-list"></div>
+          <div id="queue-empty" class="empty-box hidden">Nenhum item para o filtro selecionado.</div>
+          <div id="queue-status" class="status" aria-live="polite"></div>
+        </section>
+      </section>
 
-        <div id="checklist-summary" class="checklist-summary"></div>
-        <p id="checklist-generate-hint" class="checklist-hint"></p>
+      <section id="panel-checklist" class="main-tab-panel hidden" data-main-tab-panel="checklist">
+        <section class="card checklist-shell">
+          <div class="checklist-top">
+            <h2 class="section-title" id="checklist-turn-title">Checklist do turno</h2>
+            <div class="field checklist-turn-field">
+              <label for="checklist-turno-select">Turno</label>
+              <select id="checklist-turno-select" onchange="onChecklistTurnoChange_(this.value)">
+                <option value="Manhã">Manhã</option>
+                <option value="Tarde">Tarde</option>
+                <option value="Noite">Noite</option>
+              </select>
+            </div>
+            <button id="checklist-toggle-btn" type="button" class="light" onclick="toggleChecklistPanel()">
+              Abrir checklist
+            </button>
+          </div>
 
-        <div class="filter-group checklist-filters" style="margin-bottom: 8px; flex-wrap: wrap;">
-          <button
-            type="button"
-            class="filter-button active"
-            data-check-filter="todos"
-            onclick="setChecklistFilter('todos')"
-          >
-            Todos
-          </button>
-          <button type="button" class="filter-button" data-check-filter="pendentes" onclick="setChecklistFilter('pendentes')">
-            Pendentes
-          </button>
-          <button type="button" class="filter-button" data-check-filter="feitos" onclick="setChecklistFilter('feitos')">
-            Feitos
-          </button>
-          <button type="button" class="filter-button" data-check-filter="na" onclick="setChecklistFilter('na')">
-            Não aplicáveis
-          </button>
-          <button
-            type="button"
-            class="filter-button"
-            data-check-filter="feitos_hoje"
-            onclick="setChecklistFilter('feitos_hoje')"
-          >
-            Feitos hoje
-          </button>
-        </div>
+          <div id="checklist-summary" class="checklist-summary"></div>
+          <p id="checklist-generate-hint" class="checklist-hint"></p>
 
-        <div class="toolbar-actions" style="margin-bottom: 8px;">
-          <button id="checklist-generate-btn" type="button" class="light" onclick="refreshChecklistToday()">
-            Atualizar checklist
-          </button>
-        </div>
+          <div class="filter-group checklist-filters" style="margin-bottom: 8px; flex-wrap: wrap;">
+            <button
+              type="button"
+              class="filter-button active"
+              data-check-filter="todos"
+              onclick="setChecklistFilter('todos')"
+            >
+              Todos
+            </button>
+            <button type="button" class="filter-button" data-check-filter="pendentes" onclick="setChecklistFilter('pendentes')">
+              Pendentes
+            </button>
+            <button type="button" class="filter-button" data-check-filter="feitos" onclick="setChecklistFilter('feitos')">
+              Feitos
+            </button>
+            <button type="button" class="filter-button" data-check-filter="na" onclick="setChecklistFilter('na')">
+              Não aplicáveis
+            </button>
+            <button
+              type="button"
+              class="filter-button"
+              data-check-filter="feitos_hoje"
+              onclick="setChecklistFilter('feitos_hoje')"
+            >
+              Feitos hoje
+            </button>
+          </div>
 
-        <div id="checklist-content" class="hidden">
-          <div id="checklist-categories" class="checklist-categories"></div>
-        </div>
-        <div id="checklist-status" class="status" aria-live="polite"></div>
+          <div class="toolbar-actions" style="margin-bottom: 8px;">
+            <button id="checklist-generate-btn" type="button" class="light" onclick="refreshChecklistToday()">
+              Atualizar checklist
+            </button>
+          </div>
+
+          <div id="checklist-content" class="hidden">
+            <div id="checklist-categories" class="checklist-categories"></div>
+          </div>
+          <div id="checklist-status" class="status" aria-live="polite"></div>
+        </section>
       </section>
     </main>
+
+    <div id="card-detail-overlay" class="modal-overlay hidden" aria-hidden="true">
+      <div class="modal-dialog card" role="dialog" aria-modal="true" aria-labelledby="card-detail-title">
+        <div class="modal-head">
+          <h2 id="card-detail-title">Detalhes</h2>
+          <button type="button" class="modal-icon-btn" onclick="closeCardDetailOverlay_()" aria-label="Fechar">×</button>
+        </div>
+        <pre id="card-detail-body" class="card-detail-pre"></pre>
+        <div class="form-actions">
+          <button type="button" class="light" onclick="closeCardDetailOverlay_()">Fechar</button>
+        </div>
+      </div>
+    </div>
 
     <div id="form-modal-overlay" class="modal-overlay hidden" aria-hidden="true">
       <div class="modal-dialog card" role="dialog" aria-modal="true" aria-labelledby="form-modal-title">
@@ -1078,23 +1361,28 @@
 
     <script>
       const OPERADOR_STORAGE_KEY = 'handover_operador_atual_v14';
-      const QUEUE_FILTERS = [
-        'todos',
+      const QUEUE_FILTERS_PENDENCIAS = ['pendentes', 'todos', 'urgentes', 'vencidos_hoje'];
+      const QUEUE_FILTERS_MEDICAMENTOS = [
         'pendentes',
+        'todos',
+        'faltas',
+        'encomendas',
         'comprados',
-        'entregues',
-        'resolvidos',
-        'resolvidos_parcialmente',
         'comprados_sem_aviso',
+        'entregues',
         'vencidos_hoje',
+        'resolvidos_parcialmente',
       ];
+      const QUEUE_FILTERS_ALL = QUEUE_FILTERS_PENDENCIAS.concat(QUEUE_FILTERS_MEDICAMENTOS).concat(['resolvidos']);
 
       const CHECKLIST_VIEW_FILTERS = ['todos', 'pendentes', 'feitos', 'na', 'feitos_hoje'];
 
       const checklistObservationDrafts = Object.create(null);
 
       let dashboardData = parseInitialDataB64('<?= initialDataB64 ?>');
+      let activeMainTab = 'pendencias';
       let activeQueueFilter = 'pendentes';
+      let medQueueSearchQuery = '';
       let activeChecklistFilter = 'todos';
       let historicoResolvidos = [];
       let historicoLoadState = 'idle';
@@ -1122,7 +1410,7 @@
       const formModalOverlay = document.getElementById('form-modal-overlay');
       const formModalCloseBtn = document.getElementById('form-modal-close');
       const formModalCancelBtn = document.getElementById('form-modal-cancel');
-      const toggleFormBtn = document.getElementById('toggle-form-btn');
+      const cardDetailOverlay = document.getElementById('card-detail-overlay');
       const requestForm = document.getElementById('request-form');
       const categorySelect = document.getElementById('category');
       const tipoSelect = document.getElementById('tipo');
@@ -1152,6 +1440,17 @@
       const historicoFiltersPanel = document.getElementById('historico-filters-panel');
       const checklistTurnSelect = document.getElementById('checklist-turno-select');
       const checklistTurnTitleEl = document.getElementById('checklist-turn-title');
+
+      const panelQueueWrap = document.getElementById('panel-queue-wrap');
+      const panelChecklist = document.getElementById('panel-checklist');
+      const queueSectionHeading = document.getElementById('queue-section-heading');
+      const medSearchWrap = document.getElementById('med-search-wrap');
+      const medQueueSearchInput = document.getElementById('med-queue-search');
+      const novoRegistroTrigger = document.getElementById('novo-registro-trigger');
+      const novoRegistroMenu = document.getElementById('novo-registro-menu');
+      const novoRegistroDropdown = document.getElementById('novo-registro-dropdown');
+
+      let lastRenderedQueueItems = [];
 
       ensureChecklistObservationDelegation_();
 
@@ -1215,6 +1514,10 @@
         }
         if (formModalOverlay && !formModalOverlay.classList.contains('hidden')) {
           closeFormModal_();
+          return;
+        }
+        if (cardDetailOverlay && !cardDetailOverlay.classList.contains('hidden')) {
+          closeCardDetailOverlay_();
           return;
         }
         if (operadorRequiredOverlay && !operadorRequiredOverlay.classList.contains('hidden')) {
@@ -1369,7 +1672,8 @@
         return (
           (formModalOverlay && !formModalOverlay.classList.contains('hidden')) ||
           (operadorRequiredOverlay && !operadorRequiredOverlay.classList.contains('hidden')) ||
-          (reopenConfirmOverlay && !reopenConfirmOverlay.classList.contains('hidden'))
+          (reopenConfirmOverlay && !reopenConfirmOverlay.classList.contains('hidden')) ||
+          (cardDetailOverlay && !cardDetailOverlay.classList.contains('hidden'))
         );
       }
 
@@ -1421,6 +1725,7 @@
         if (bundle.bundleTurno) {
           activeChecklistTurno = bundle.bundleTurno;
         }
+        updateLastActionLabel_();
       }
 
       function refreshDashboardNow_(silent) {
@@ -1807,9 +2112,485 @@
         renderChecklistSection();
       }
 
-      renderAll();
+      function escapeJsSingleQuoted_(value) {
+        return String(value == null ? '' : value)
+          .replace(/\\/g, '\\\\')
+          .replace(/'/g, "\\'");
+      }
+
+      function initHandoverPhase1Layout_() {
+        bindMainTabsUi_();
+        bindSummaryCardsDelegation_();
+        bindNovoRegistroDropdown_();
+        bindMedQueueSearch_();
+        initGlobalClickDismiss_();
+        setMainTab('pendencias');
+      }
+
+      function syncMainTabButtons_() {
+        document.querySelectorAll('[data-main-tab]').forEach(function (btn) {
+          btn.classList.toggle('active', btn.getAttribute('data-main-tab') === activeMainTab);
+        });
+      }
+
+      function syncMainTabPanelsVisibility_() {
+        if (panelQueueWrap) {
+          var showQueue =
+            activeMainTab === 'pendencias' ||
+            activeMainTab === 'medicamentos' ||
+            activeMainTab === 'historico';
+          panelQueueWrap.classList.toggle('hidden', !showQueue);
+        }
+        if (panelChecklist) {
+          panelChecklist.classList.toggle('hidden', activeMainTab !== 'checklist');
+        }
+      }
+
+      function normalizeQueueFilterForTab_() {
+        var ok =
+          activeMainTab === 'pendencias'
+            ? QUEUE_FILTERS_PENDENCIAS.indexOf(activeQueueFilter) >= 0
+            : activeMainTab === 'medicamentos'
+            ? QUEUE_FILTERS_MEDICAMENTOS.indexOf(activeQueueFilter) >= 0
+            : true;
+        if (!ok) {
+          activeQueueFilter = 'pendentes';
+        }
+      }
+
+      function postMainTabDomSync_() {
+        renderHistoricoFiltersPanel_();
+        renderQueueFiltersChrome_();
+        updateQueueSectionChrome_();
+        syncMainTabPanelsVisibility_();
+      }
+
+      function setMainTab(tabKey, options) {
+        options = options || {};
+        activeMainTab = tabKey;
+        syncMainTabButtons_();
+
+        if (tabKey === 'historico') {
+          activeQueueFilter = 'resolvidos';
+          loadHistoricoIfNeeded_(function () {
+            postMainTabDomSync_();
+            renderAll();
+          });
+          return;
+        }
+
+        if (!options.presetFilter && activeQueueFilter === 'resolvidos') {
+          activeQueueFilter = 'pendentes';
+        }
+
+        if (options.presetFilter) {
+          activeQueueFilter = options.presetFilter;
+        }
+
+        normalizeQueueFilterForTab_();
+
+        if (tabKey === 'checklist') {
+          ensureChecklistExpanded_();
+        }
+
+        postMainTabDomSync_();
+        renderAll();
+      }
+
+      function bindMainTabsUi_() {
+        document.querySelectorAll('[data-main-tab]').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var tab = btn.getAttribute('data-main-tab');
+            if (tab) {
+              setMainTab(tab);
+            }
+          });
+        });
+      }
+
+      function onSummaryCardNavigate_(kind) {
+        switch (kind) {
+          case 'pendencias':
+            setMainTab('pendencias', { presetFilter: 'pendentes' });
+            break;
+          case 'urgentes':
+            setMainTab('pendencias', { presetFilter: 'urgentes' });
+            break;
+          case 'medicamentos':
+            setMainTab('medicamentos', { presetFilter: 'pendentes' });
+            break;
+          case 'sem_aviso':
+            setMainTab('medicamentos', { presetFilter: 'comprados_sem_aviso' });
+            break;
+          case 'checklist':
+            setMainTab('checklist');
+            break;
+          default:
+            break;
+        }
+      }
+
+      function bindSummaryCardsDelegation_() {
+        if (!summaryContainer || summaryContainer.dataset.summaryDeleg === '1') {
+          return;
+        }
+        summaryContainer.dataset.summaryDeleg = '1';
+        summaryContainer.addEventListener('click', function (ev) {
+          var t = ev.target.closest('[data-summary-card]');
+          if (!t) {
+            return;
+          }
+          onSummaryCardNavigate_(t.getAttribute('data-summary-card'));
+        });
+        summaryContainer.addEventListener('keydown', function (ev) {
+          if (ev.key !== 'Enter' && ev.key !== ' ') {
+            return;
+          }
+          var t = ev.target.closest('[data-summary-card]');
+          if (!t) {
+            return;
+          }
+          ev.preventDefault();
+          onSummaryCardNavigate_(t.getAttribute('data-summary-card'));
+        });
+      }
+
+      function closeNovoRegistroDropdown_() {
+        if (novoRegistroMenu) {
+          novoRegistroMenu.classList.add('hidden');
+        }
+        if (novoRegistroTrigger) {
+          novoRegistroTrigger.setAttribute('aria-expanded', 'false');
+        }
+      }
+
+      function toggleNovoRegistroDropdown_(ev) {
+        if (ev) {
+          ev.stopPropagation();
+        }
+        if (!novoRegistroMenu || !novoRegistroTrigger) {
+          return;
+        }
+        var open = novoRegistroMenu.classList.contains('hidden');
+        novoRegistroMenu.classList.toggle('hidden', !open);
+        novoRegistroTrigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+
+      function bindNovoRegistroDropdown_() {
+        if (!novoRegistroTrigger || novoRegistroTrigger.dataset.bound === '1') {
+          return;
+        }
+        novoRegistroTrigger.dataset.bound = '1';
+        novoRegistroTrigger.addEventListener('click', function (e) {
+          toggleNovoRegistroDropdown_(e);
+        });
+      }
+
+      function initGlobalClickDismiss_() {
+        if (!document.body || document.body.dataset.handoverGlobalClick === '1') {
+          return;
+        }
+        document.body.dataset.handoverGlobalClick = '1';
+        document.addEventListener('click', function (ev) {
+          if (!novoRegistroDropdown || !novoRegistroDropdown.contains(ev.target)) {
+            closeNovoRegistroDropdown_();
+          }
+          if (!ev.target.closest('.card-more')) {
+            closeAllCardMenus_();
+          }
+        });
+      }
+
+      function openNovoRegistroPendencia_() {
+        closeNovoRegistroDropdown_();
+        categorySelect.value = 'Geral';
+        updateVisibleFields();
+        updateMedicinePriceVisibility_();
+        openFormModal_();
+      }
+
+      function openNovoRegistroMedicamento_() {
+        closeNovoRegistroDropdown_();
+        categorySelect.value = 'Medicamentos';
+        updateVisibleFields();
+        updateMedicinePriceVisibility_();
+        openFormModal_();
+      }
+
+      function bindMedQueueSearch_() {
+        if (!medQueueSearchInput || medQueueSearchInput.dataset.bound === '1') {
+          return;
+        }
+        medQueueSearchInput.dataset.bound = '1';
+        medQueueSearchInput.addEventListener('input', function () {
+          medQueueSearchQuery = medQueueSearchInput.value || '';
+          renderQueue();
+        });
+      }
+
+      function renderQueueFiltersChrome_() {
+        var host = document.getElementById('queue-filters-host');
+        if (!host) {
+          return;
+        }
+        if (activeMainTab === 'historico') {
+          host.innerHTML = '';
+          return;
+        }
+        var spec =
+          activeMainTab === 'pendencias'
+            ? [
+                ['pendentes', 'Pendentes'],
+                ['todos', 'Todos'],
+                ['urgentes', 'Urgentes'],
+                ['vencidos_hoje', 'Vencidos/Hoje'],
+              ]
+            : [
+                ['pendentes', 'Pendentes'],
+                ['todos', 'Todos'],
+                ['faltas', 'Faltas'],
+                ['encomendas', 'Encomendas'],
+                ['comprados', 'Comprados'],
+                ['comprados_sem_aviso', 'Comprados sem aviso'],
+                ['entregues', 'Entregues'],
+                ['vencidos_hoje', 'Vencidos/Hoje'],
+                ['resolvidos_parcialmente', 'Resolvidos parcialmente'],
+              ];
+
+        host.innerHTML =
+          '<div class="filter-group">' +
+          spec
+            .map(function (pair) {
+              var key = pair[0];
+              var label = pair[1];
+              var active = activeQueueFilter === key ? ' active' : '';
+              return (
+                '<button type="button" class="filter-button' +
+                active +
+                '" data-filter="' +
+                escapeAttribute(key) +
+                "\" onclick=\"setQueueFilter('" +
+                escapeAttribute(key) +
+                "')\">" +
+                escapeHtml(label) +
+                '</button>'
+              );
+            })
+            .join('') +
+          '</div>';
+      }
+
+      function updateQueueSectionChrome_() {
+        if (!queueSectionHeading) {
+          return;
+        }
+        if (activeMainTab === 'pendencias') {
+          queueSectionHeading.textContent = 'Fila de pendências';
+          if (medSearchWrap) {
+            medSearchWrap.classList.add('hidden');
+          }
+        } else if (activeMainTab === 'medicamentos') {
+          queueSectionHeading.textContent = 'Medicamentos solicitados';
+          if (medSearchWrap) {
+            medSearchWrap.classList.remove('hidden');
+          }
+        } else if (activeMainTab === 'historico') {
+          queueSectionHeading.textContent = 'Histórico / Resolvidos';
+          if (medSearchWrap) {
+            medSearchWrap.classList.add('hidden');
+          }
+        }
+      }
+
+      function filterItemsByMainTab_(items) {
+        if (activeMainTab === 'pendencias') {
+          return items.filter(function (i) {
+            return i.type === 'geral';
+          });
+        }
+        if (activeMainTab === 'medicamentos') {
+          return items.filter(function (i) {
+            return i.type === 'medicamento';
+          });
+        }
+        return items;
+      }
+
+      function sortQueueItemsLikeLegacy_(items) {
+        return items.slice().sort(function (a, b) {
+          if (a.isOverdue !== b.isOverdue) {
+            return a.isOverdue ? -1 : 1;
+          }
+          var timeA = Number(a.timeSort || 0);
+          var timeB = Number(b.timeSort || 0);
+          return timeB - timeA;
+        });
+      }
+
+      function applyMedicamentosSearch_(items) {
+        if (activeMainTab !== 'medicamentos') {
+          return items;
+        }
+        var q = String(medQueueSearchQuery || '').trim().toLowerCase();
+        if (!q) {
+          return items;
+        }
+        return items.filter(function (item) {
+          return (
+            String(item.title || '').toLowerCase().indexOf(q) >= 0 ||
+            String(item.person || '').toLowerCase().indexOf(q) >= 0 ||
+            String(item.description || '').toLowerCase().indexOf(q) >= 0 ||
+            String(item.extraMeta || '').toLowerCase().indexOf(q) >= 0
+          );
+        });
+      }
+
+      function computeLatestUltimaAcaoLine_(data) {
+        var best = 0;
+        var label = '';
+        function bump(ts, por) {
+          var t = parseDateTime_(ts);
+          if (!t || !por) {
+            return;
+          }
+          if (t >= best) {
+            best = t;
+            label = por + ' · ' + formatDateTime(ts);
+          }
+        }
+        (data.geral || []).forEach(function (row) {
+          bump(row.Ultima_Acao_Em, row.Ultima_Acao_Por);
+        });
+        (data.medicamentos || []).forEach(function (row) {
+          bump(row.Ultima_Acao_Em, row.Ultima_Acao_Por);
+        });
+        return label;
+      }
+
+      function updateLastActionLabel_() {
+        var el = document.getElementById('last-action-label');
+        if (!el) {
+          return;
+        }
+        var line = computeLatestUltimaAcaoLine_(dashboardData);
+        el.textContent = line ? 'Última ação: ' + line : 'Última ação: —';
+      }
+
+      function ensureChecklistExpanded_() {
+        var prev = isChecklistExpanded;
+        isChecklistExpanded = true;
+        if (!prev && checklistContent && checklistToggleBtn) {
+          checklistContent.classList.remove('hidden');
+          checklistToggleBtn.textContent = 'Fechar checklist';
+        }
+        renderChecklistSummaryBarAndHints_();
+        renderChecklistSection();
+      }
+
+      function closeCardDetailOverlay_() {
+        if (!cardDetailOverlay) {
+          return;
+        }
+        cardDetailOverlay.classList.add('hidden');
+        cardDetailOverlay.setAttribute('aria-hidden', 'true');
+      }
+
+      function openCardDetailOverlay_(title, bodyText) {
+        var tEl = document.getElementById('card-detail-title');
+        var bEl = document.getElementById('card-detail-body');
+        if (tEl) {
+          tEl.textContent = title || 'Detalhes';
+        }
+        if (bEl) {
+          bEl.textContent = bodyText || '';
+        }
+        if (cardDetailOverlay) {
+          cardDetailOverlay.classList.remove('hidden');
+          cardDetailOverlay.setAttribute('aria-hidden', 'false');
+        }
+      }
+
+      function findQueueItemById_(id) {
+        return lastRenderedQueueItems.find(function (x) {
+          return x.id === id;
+        });
+      }
+
+      function cardMoreVerDetalhes_(id) {
+        closeAllCardMenus_();
+        var item = findQueueItemById_(id);
+        if (!item) {
+          showToast_('Item não encontrado.', true);
+          return;
+        }
+        var body =
+          item.title +
+          '\n\n' +
+          item.description +
+          (item.extraMeta ? '\n\n' + item.extraMeta : '');
+        openCardDetailOverlay_(item.title, body);
+      }
+
+      function cardMoreCopiar_(id) {
+        closeAllCardMenus_();
+        var item = findQueueItemById_(id);
+        if (!item) {
+          showToast_('Item não encontrado.', true);
+          return;
+        }
+        var text =
+          item.title +
+          '\n' +
+          item.description +
+          (item.extraMeta ? '\n' + item.extraMeta : '');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            function () {
+              showToast_('Copiado');
+            },
+            function () {
+              showToast_('Não foi possível copiar.', true);
+            }
+          );
+        } else {
+          showToast_('Copiar indisponível neste navegador.', true);
+        }
+      }
+
+      function toggleCardMoreMenu_(evt, id) {
+        if (evt) {
+          evt.stopPropagation();
+        }
+        var wrap = null;
+        document.querySelectorAll('.card-more[data-card-more-wrap]').forEach(function (w) {
+          if (w.getAttribute('data-card-more-wrap') === String(id)) {
+            wrap = w;
+          }
+        });
+        if (!wrap) {
+          return;
+        }
+        var menu = wrap.querySelector('.card-more-menu');
+        if (!menu) {
+          return;
+        }
+        var willOpen = menu.classList.contains('hidden');
+        closeAllCardMenus_();
+        if (willOpen) {
+          menu.classList.remove('hidden');
+        }
+      }
+
+      function closeAllCardMenus_() {
+        document.querySelectorAll('.card-more-menu').forEach(function (m) {
+          m.classList.add('hidden');
+        });
+      }
+
+      initHandoverPhase1Layout_();
 
       function renderAll() {
+        updateLastActionLabel_();
         renderSummary();
         renderQueue();
         renderChecklistSection();
@@ -1817,9 +2598,13 @@
 
       function renderSummary() {
         const allQueueItems = buildWorkQueueItems(dashboardData);
-        const pendingQueue = allQueueItems.filter(function (item) {
-          return item.statusKey === 'pendente';
+        const geralItems = allQueueItems.filter(function (item) {
+          return item.type === 'geral';
         });
+        const pendenciasCount = geralItems.length;
+        const urgentesCount = geralItems.filter(function (item) {
+          return item.urgenciaKey === 'urgente';
+        }).length;
         const medicationPending = allQueueItems.filter(function (item) {
           return item.type === 'medicamento' && item.statusKey === 'pendente';
         });
@@ -1835,20 +2620,34 @@
         };
 
         summaryContainer.innerHTML = [
-          buildSummaryBox_('Pendências', pendingQueue.length, 'Fila de trabalho ativa'),
-          buildSummaryBox_('Medicamentos pendentes', medicationPending.length, 'Aguardando ação'),
-          buildSummaryBox_('Comprados sem aviso', boughtWithoutWhatsapp.length, 'Prioridade de WhatsApp'),
-          buildSummaryBox_(
-            'Checklist (' + (checklist.turno || activeChecklistTurno || 'Manhã').trim() + ')',
-            checklistSummaryData.percentualConcluido + '%',
-            checklistSummaryData.itensPendentes + ' pendente(s)'
+          buildSummaryCard_('pendencias', 'Pendências', String(pendenciasCount), 'Solicitações gerais'),
+          buildSummaryCard_('urgentes', 'Urgentes', String(urgentesCount), 'Prioridade na loja'),
+          buildSummaryCard_(
+            'medicamentos',
+            'Medicamentos solicitados',
+            String(medicationPending.length),
+            'Faltas e encomendas'
+          ),
+          buildSummaryCard_(
+            'sem_aviso',
+            'Comprados sem aviso',
+            String(boughtWithoutWhatsapp.length),
+            'WhatsApp pendente'
+          ),
+          buildSummaryCard_(
+            'checklist',
+            'Checklist pendente',
+            String(checklistSummaryData.itensPendentes),
+            'Itens do turno'
           ),
         ].join('');
       }
 
-      function buildSummaryBox_(label, value, sub) {
+      function buildSummaryCard_(kind, label, value, sub) {
         return (
-          '<div class="summary-box">' +
+          '<div class="summary-box summary-box-click ho-card" tabindex="0" role="button" data-summary-card="' +
+          escapeAttribute(kind) +
+          '">' +
           '<div class="label">' +
           escapeHtml(label) +
           '</div>' +
@@ -2079,7 +2878,7 @@
         if (!historicoFiltersPanel) {
           return;
         }
-        if (activeQueueFilter !== 'resolvidos') {
+        if (activeQueueFilter !== 'resolvidos' || activeMainTab !== 'historico') {
           historicoFiltersPanel.classList.add('hidden');
           historicoFiltersPanel.innerHTML = '';
           return;
@@ -2286,24 +3085,30 @@
       }
 
       function buildQueueItemsForRender_() {
-        if (activeQueueFilter === 'resolvidos') {
+        if (activeMainTab === 'historico') {
           var filteredRows = filterHistoricoRows_(historicoResolvidos);
-          return buildHistoricoQueueItems_(filteredRows).sort(function (a, b) {
-            var timeA = Number(a.timeSort || 0);
-            var timeB = Number(b.timeSort || 0);
-            return timeB - timeA;
-          });
+          return sortQueueItemsLikeLegacy_(buildHistoricoQueueItems_(filteredRows));
         }
-        return filterQueueItems_(buildWorkQueueItems(dashboardData));
+        var merged = buildWorkQueueItems(dashboardData);
+        merged = filterItemsByMainTab_(merged);
+        merged = filterQueueItems_(merged);
+        merged = applyMedicamentosSearch_(merged);
+        return sortQueueItemsLikeLegacy_(merged);
       }
 
       function renderQueue() {
         renderHistoricoFiltersPanel_();
         const queueItems = buildQueueItemsForRender_();
+        lastRenderedQueueItems = queueItems.slice();
         queueList.innerHTML = '';
         queueEmpty.classList.toggle('hidden', queueItems.length !== 0);
         queueSubtitle.textContent =
-          'Filtro atual: ' + humanizeQueueFilter_(activeQueueFilter) + ' (' + queueItems.length + ')';
+          humanizeMainTabLabel_(activeMainTab) +
+          ' · Filtro: ' +
+          humanizeQueueFilter_(activeQueueFilter) +
+          ' (' +
+          queueItems.length +
+          ')';
 
         if (queueItems.length === 0) {
           return;
@@ -2360,8 +3165,26 @@
           '<div>' +
           badges.join(' ') +
           '</div>' +
+          '<div class="queue-head-right">' +
           '<div class="queue-time">' +
           escapeHtml(item.timeLabel) +
+          '</div>' +
+          '<div class="card-more" data-card-more-wrap="' +
+          escapeAttribute(item.id) +
+          '">' +
+          '<button type="button" class="card-more-btn" onclick="toggleCardMoreMenu_(event, \'' +
+          escapeJsSingleQuoted_(item.id) +
+          '\')">⋯</button>' +
+          '<div class="card-more-menu hidden" role="menu">' +
+          '<button type="button" onclick="cardMoreVerDetalhes_(\'' +
+          escapeJsSingleQuoted_(item.id) +
+          '\')">Ver detalhes</button>' +
+          '<button type="button" onclick="cardMoreCopiar_(\'' +
+          escapeJsSingleQuoted_(item.id) +
+          '\')">Copiar informações</button>' +
+          '<button type="button" disabled title="Trilha detalhada será implementada em fase futura.">Ver trilha de auditoria</button>' +
+          '</div>' +
+          '</div>' +
           '</div>' +
           '</div>' +
           '<div class="queue-title-main">' +
@@ -2420,6 +3243,10 @@
             ' · Descrição: ' +
             (item.Descricao || '-') +
             (dlbl ? ' · ' + dlbl : '');
+          var urgLower = String(item.Urgencia || '')
+            .trim()
+            .toLowerCase();
+          var urgenciaKey = urgLower === 'urgente' ? 'urgente' : 'normal';
           var resolving = item.__resolveState === 'resolving';
           var syncErr = item.__syncState === 'error';
           var pendingRetry = item.__pendingSave && syncErr;
@@ -2443,6 +3270,7 @@
             originLabel: 'Solicitações',
             statusLabel: 'Pendente',
             statusKey: 'pendente',
+            urgenciaKey: urgenciaKey,
             title: titleLine,
             description: descLine,
             person: item.Autor || '-',
@@ -2544,6 +3372,7 @@
             originLabel: 'Medicamentos',
             statusLabel: status.label,
             statusKey: status.key,
+            medTipo: tipoLow,
             title: item.Medicamento || 'Medicamento sem nome',
             description:
               'Tipo: ' +
@@ -2588,6 +3417,18 @@
 
       function filterQueueItems_(items) {
         switch (activeQueueFilter) {
+          case 'urgentes':
+            return items.filter(function (item) {
+              return item.type === 'geral' && item.urgenciaKey === 'urgente';
+            });
+          case 'faltas':
+            return items.filter(function (item) {
+              return item.type === 'medicamento' && item.medTipo === 'falta';
+            });
+          case 'encomendas':
+            return items.filter(function (item) {
+              return item.type === 'medicamento' && item.medTipo === 'encomenda';
+            });
           case 'pendentes':
             return items.filter(function (item) {
               return item.statusKey === 'pendente';
@@ -2621,36 +3462,40 @@
       }
 
       function setQueueFilter(filterKey) {
-        if (QUEUE_FILTERS.indexOf(filterKey) === -1) {
+        if (QUEUE_FILTERS_ALL.indexOf(filterKey) === -1) {
           return;
         }
 
         if (filterKey === 'resolvidos') {
-          activeQueueFilter = filterKey;
-          document.querySelectorAll('#queue-filters .filter-button').forEach(function (button) {
-            button.classList.toggle('active', button.dataset.filter === filterKey);
-          });
-          queueSubtitle.textContent = 'Carregando histórico...';
-          loadHistoricoIfNeeded_(function () {
-            renderHistoricoFiltersPanel_();
-            renderQueue();
-            renderSummary();
-          });
+          setMainTab('historico');
           return;
         }
 
         activeQueueFilter = filterKey;
-        document.querySelectorAll('#queue-filters .filter-button').forEach(function (button) {
-          button.classList.toggle('active', button.dataset.filter === filterKey);
-        });
+        normalizeQueueFilterForTab_();
+        renderQueueFiltersChrome_();
         renderHistoricoFiltersPanel_();
         renderQueue();
+        renderSummary();
+      }
+
+      function humanizeMainTabLabel_(tabKey) {
+        var mapping = {
+          pendencias: 'Pendências',
+          medicamentos: 'Medicamentos',
+          historico: 'Histórico',
+          checklist: 'Checklist',
+        };
+        return mapping[tabKey] || 'Painel';
       }
 
       function humanizeQueueFilter_(filterKey) {
         const mapping = {
           todos: 'Todos',
           pendentes: 'Pendentes',
+          urgentes: 'Urgentes',
+          faltas: 'Faltas',
+          encomendas: 'Encomendas',
           comprados: 'Comprados',
           entregues: 'Entregues',
           resolvidos: 'Histórico / Resolvidos',
@@ -3403,9 +4248,6 @@
         formModalOverlay.classList.add('hidden');
         formModalOverlay.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
-        if (toggleFormBtn) {
-          toggleFormBtn.textContent = 'Novo registro';
-        }
         requestForm.reset();
         updateVisibleFields();
         updateMedicinePriceVisibility_();
@@ -3426,9 +4268,6 @@
         formModalOverlay.classList.remove('hidden');
         formModalOverlay.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
-        if (toggleFormBtn) {
-          toggleFormBtn.textContent = 'Fechar novo registro';
-        }
         window.setTimeout(function () {
           if (categorySelect.value === 'Medicamentos') {
             var med = document.getElementById('medicamento');

@@ -2,7 +2,7 @@
 
 ## Título
 
-**Handover v23 — validação desktop/backoffice e skills de domínio**
+**Fase 1 — Layout desktop base do Handover**
 
 ---
 
@@ -10,44 +10,37 @@
 
 | Campo | Valor |
 |--------|--------|
-| **Estado** | **Concluído / publicado** |
-| **Versão** | **23** |
-| **Deployment oficial** | Mantido (mesmo Web App Handover; ver `AGENTS.md` do projeto e skill `aios/skills/handover/SKILL.md`). |
-| **Relatórios (canônicos)** | `reports/validacao-handover-atual.md`, `reports/validacao-handover-atual.json` |
-| **Commit de relatórios** | `62d8e32` |
-
-### Confirmações de isolamento
-
-- **POP:** não tocado neste ciclo de skills/tasks.
-- **Código Apps Script / Web App:** não alterado nesta entrega (somente documentação em `aios/skills/` e `tasks/current.md`).
+| **Estado** | **Concluído (Fase 1 layout desktop em Index.html)** |
+| **Versão base** | **25** (publicada e estável; preservar fluxos) |
+| **Relatórios (referência)** | `reports/validacao-handover-atual.md`, `reports/validacao-handover-atual.json`, `reports/cursor-atual.md` |
 
 ---
 
-## Escopo validado na v23 (referência para skills)
+## Escopo
 
-| Área | Conteúdo |
-|------|-----------|
-| **Checklist** | Observação em leitura/edição, rascunho preservado, filtros de visualização, seletor de turno (Manhã/Tarde/Noite), `generateChecklistForTurno` no fluxo de refresh. |
-| **Histórico / Resolvidos** | Carga sob demanda, filtros (datas, categoria, estado, operador), reabrir/reverter com modal e trilha (`Estado_Arquivo`, reabertura, vínculos). |
-| **Sincronização** | “Atualizar agora”, carimbo de última atualização, auto-refresh leve com guardas (modais / edição de observação), merge sem descartar rascunhos ou placeholders críticos. |
-| **UX desktop** | Modal de operador (sem `window.prompt`), novo registro otimista com modal fechando cedo, resolver Geral com **Resolvendo…** e rollback visível no card. |
-
----
-
-## Skills específicas (v23)
-
-| Skill | Pasta |
-|-------|--------|
-| Checklist | `aios/skills/checklist-handover/SKILL.md` |
-| Histórico | `aios/skills/historico-resolvidos/SKILL.md` |
-| Sync / auditoria na UI | `aios/skills/handover-sync-audit/SKILL.md` |
-| UX desktop | `aios/skills/handover-desktop-ux/SKILL.md` |
-
-Skills gerais existentes continuam válidas: `handover`, `gas-safety`, `sheets-schema`, `smoke-handover`, `codex-handover-deploy` (deploy apenas com autorização).
+- Header novo (marca + Handover, operador, última atualização, última ação, Atualizar agora, Novo registro com dropdown).
+- Cards de resumo operacional no topo (clicáveis quando seguro).
+- Abas principais: **Pendências**, **Medicamentos**, **Checklist**, **Histórico**.
+- Separação visual e funcional: Pendências = apenas Geral; Medicamentos = apenas Falta/Encomenda.
+- Dropdown Novo registro: Pendência da loja (modal Geral) e Medicamento solicitado (modal Medicamentos).
+- Checklist e Histórico como áreas por aba (sem redesign profundo do checklist).
+- Preservar todos os fluxos atuais (operador modal, otimista, checklist rascunho, WhatsApp, reversão, filtros existentes onde aplicável).
 
 ---
 
-## Próximos passos sugeridos (opcional)
+## Fora de escopo (Fase 1)
 
-- Rodar smoke conforme `smoke-handover` após qualquer mudança futura em `Code.gs` / `Index.html`.
-- Atualizar relatórios em `reports/` quando houver nova versão publicada e registrar novo commit de relatório neste arquivo.
+- Trilha de Auditoria lateral completa.
+- Timeline antes/depois.
+- Checklist “premium”.
+- Histórico “premium”.
+- `Auditoria_JSON` nova ou reestruturação de backend.
+- Real-time complexo.
+- Mudança profunda de schema.
+
+---
+
+## Confirmações de isolamento
+
+- **POP:** não alterar Portal de POPs nem usar clasp/recursos do POP nesta pasta Handover.
+- **Deploy:** apenas quando autorizado explicitamente; esta task não inclui deploy nem `clasp push` pela governança atual.
