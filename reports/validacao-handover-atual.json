@@ -1,78 +1,55 @@
 {
   "projeto": "Handover - Drogarias Conceito",
-  "status_geral": "PARCIAL",
+  "status_geral": "OK",
   "pasta": "C:\\Users\\Marco\\Desktop\\Sis Drogaria\\Handover",
   "branch": "master",
-  "commit_validado": "7468d4e",
-  "mensagem_commit": "feat(handover): layout desktop fase 1 com header, cards e abas",
+  "commit_validado": "e7c7f84",
+  "mensagem_commit": "fix(handover): Novo registro Medicamentos abre modal na categoria correta",
   "scriptId": "1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd",
   "deploymentId": "AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw",
   "url": "https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklpkwI1xVMgG_DIvXnJWlRFLRCGMZYtKZSymyc6fmXuw/exec",
-  "versao_publicada": 26,
+  "versao_publicada": 27,
   "rollback_feito": false,
   "pop_tocado": false,
   "pre_deploy": {
     "resultado": "OK",
     "arquivos_alterados_commit": [
-      "Index.html",
-      "reports/cursor-atual.md",
-      "tasks/current.md"
+      "Index.html"
     ],
     "code_gs_alterado": false,
     "schema_alterado": false,
-    "backend_alterado": false,
-    "sheet_clear": false,
+    "payloads_alterados": false,
     "pop_referenciado": false
   },
   "publicacao": {
     "clasp_status": "OK",
     "clasp_push": "OK",
-    "clasp_version": 26,
+    "clasp_version": 27,
     "clasp_deploy": "OK",
     "deployment_oficial_mantido": true
   },
-  "smoke_desktop": {
-    "abertura_layout": "OK",
-    "header": "OK",
-    "cards_resumo": "OK",
-    "abas": "OK",
-    "pendencias": "OK",
-    "medicamentos": "OK",
-    "novo_registro_dropdown": "PARCIAL",
-    "checklist": "OK",
-    "historico": "OK",
-    "menu_tres_pontos": "OK",
-    "regressao_critica": "OK",
-    "console_erro_critico": false
+  "smoke_minimo": {
+    "abertura": "OK",
+    "layout_v26": true,
+    "novo_registro_geral_categoria": "Geral",
+    "novo_registro_geral_ok": true,
+    "novo_registro_medicamentos_categoria": "Medicamentos",
+    "novo_registro_medicamentos_ok": true,
+    "falta_oculta_cliente": true,
+    "falta_oculta_telefone": true,
+    "falta_oculta_pre_pago": true,
+    "falta_oculta_preco": true,
+    "encomenda_mostra_cliente": true,
+    "encomenda_mostra_telefone": true,
+    "encomenda_mostra_preco": true,
+    "encomenda_mostra_pre_pago": true,
+    "console_erro_critico": false,
+    "registros_criados": []
   },
-  "evidencias": {
-    "header_cards_abas": true,
-    "pendencias_e_medicamentos_separados": true,
-    "filtros_pendencias_ok": true,
-    "filtros_medicamentos_ok": true,
-    "busca_medicamentos_ok": true,
-    "dropdown_medicamento_abre_categoria": "Geral",
-    "dropdown_medicamento_esperado": "Medicamentos",
-    "checklist_draft_preservado": true,
-    "historico_carrega_sob_demanda": true,
-    "menu_tem_imprimir": false,
-    "whatsapp_popup_url": "https://api.whatsapp.com/send/?phone=5545991453157&text=...",
-    "whatsapp_telefone_normalizado_55": true
-  },
-  "registros_criados": [
-    "CODEX_V26 Geral layout",
-    "CODEX_V26 Falta layout"
-  ],
   "falhas": {
     "criticas": [],
-    "medias": [
-      {
-        "problema": "Novo Registro > Medicamento solicitado abre o modal em categoria Geral.",
-        "impacto": "Operador precisa trocar manualmente a categoria para Medicamentos antes de salvar; cadastro ainda funciona.",
-        "arquivo_funcao_provavel": "Index.html / openNovoRegistroMedicamento_ e openFormModal_"
-      }
-    ],
+    "medias": [],
     "leves": []
   },
-  "veredito": "Publicado com ressalva. Proxima correcao: ajustar o dropdown Medicamento solicitado para abrir o modal ja em Medicamentos."
+  "veredito": "Publicado e aprovado. Dropdown Novo registro > Medicamento solicitado abre o modal diretamente em Medicamentos."
 }

@@ -1,4 +1,4 @@
-# Validacao Handover - commit 7468d4e
+# Validacao Handover - commit e7c7f84
 
 Projeto: Handover - Drogarias Conceito
 
@@ -6,7 +6,7 @@ Pasta: `C:\Users\Marco\Desktop\Sis Drogaria\Handover`
 
 Branch: `master`
 
-Commit validado: `7468d4e - feat(handover): layout desktop fase 1 com header, cards e abas`
+Commit validado: `e7c7f84 - fix(handover): Novo registro Medicamentos abre modal na categoria correta`
 
 ScriptId: `1U-1UOlud99m4NHPdaSUoL9yz4GNV193NW9mhw2t8aB-ypx9AcvfsbNSd`
 
@@ -16,9 +16,9 @@ URL oficial: `https://script.google.com/macros/s/AKfycbzJ5fxFTSfkDsU5l0s79MNrklp
 
 ## Resultado
 
-Status geral: PARCIAL
+Status geral: OK
 
-Versao publicada: 26.
+Versao publicada: 27.
 
 Rollback feito: NAO.
 
@@ -29,45 +29,31 @@ POP tocado: NAO.
 - Pasta Handover confirmada.
 - Branch `master` confirmada.
 - `.clasp.json` confirmado com scriptId do Handover.
-- Commit `7468d4e` presente no HEAD.
-- `Code.gs` nao foi alterado no commit.
-- Alteracao funcional principal esta em `Index.html`.
-- `tasks/current.md` e `reports/cursor-atual.md` foram atualizados.
-- Nao existe `sheet.clear()` no diff.
-- `doGet` e backend nao foram alterados.
-- Nao houve alteracao de schema.
+- Commit `e7c7f84` presente no HEAD.
+- Commit alterou somente `Index.html`.
+- `Code.gs` nao foi alterado.
+- Schema nao foi alterado.
+- Payloads nao foram alterados.
 - Nao ha referencia ao scriptId/deploymentId do POP no diff.
-- Checklist preserva drafts/observacao.
-- Historico continua usando `fetchHistoricoResolvidos`.
-- WhatsApp imediato, reversao, resolver com rollback e filtro Vencidos/Hoje continuam presentes no codigo.
+- Patch limita-se a passar categoria inicial para `openFormModal_`.
 
 ## Publicacao
 
 - `clasp status`: OK.
 - `clasp push`: OK, 3 arquivos enviados.
-- `clasp version`: criada versao 26.
-- `clasp deploy`: deployment oficial atualizado para versao 26.
+- `clasp version`: criada versao 27.
+- `clasp deploy`: deployment oficial atualizado para versao 27.
 - URL oficial mantida.
 
-## Smoke desktop real
+## Smoke minimo real
 
-- Abertura/layout: OK. Web App abriu sem erro critico, com header, cards e abas.
-- Header: OK. Nome/logo, Handover, Operador atual, Ultima atualizacao, Ultima acao, Atualizar agora e Novo registro aparecem.
-- Cards resumo: OK. Pendencias, Urgentes, Medicamentos solicitados, Comprados sem aviso e Checklist pendente aparecem; cards direcionam para abas/filtros principais.
-- Abas: OK. Pendencias, Medicamentos, Checklist e Historico aparecem e alternam.
-- Pendencias: OK. Fila usa cards; registro `CODEX_V26 Geral layout` aparece em Pendencias e nao aparece em Medicamentos.
-- Medicamentos: OK. Aba separada, filtros visuais funcionam, busca por texto funciona, `CODEX_V26 Falta layout` aparece em Medicamentos e nao aparece em Pendencias.
-- Novo Registro dropdown: PARCIAL. Dropdown abre e mostra opcoes, mas a opcao `Medicamento solicitado` abre o modal ainda com categoria `Geral`; selecionando `Medicamentos` dentro do modal, o fluxo salva normalmente.
-- Checklist: OK. Aba abre, turno/filtros aparecem, categorias colapsaveis funcionam, rascunho de observacao foi preservado ao mudar status de outro item.
-- Historico: OK. Aba carrega sob demanda, filtros aparecem, itens resolvidos e acao Reabrir/Reverter aparecem.
-- Menu tres pontos: OK. Menu mostra `Ver detalhes`, `Copiar informacoes` e `Ver trilha de auditoria`; nao mostra `Imprimir`.
-- Regressao critica: OK. Falta continua sem preco, Encomenda continua com preco, WhatsApp abriu `api.whatsapp.com/send` com telefone normalizado em `55...`, Atualizar agora funciona sem erro critico, Vencidos/Hoje continua disponivel.
+- Abertura: OK. Web App abriu sem erro critico e layout v26 carregou.
+- Novo registro Geral: OK. `Novo registro > Pendencia da loja` abriu modal em categoria `Geral`; campos de Geral visiveis e campos de Medicamentos ocultos.
+- Novo registro Medicamentos: OK. `Novo registro > Medicamento solicitado` abriu modal em categoria `Medicamentos`; campos de Medicamentos visiveis e campos de Geral ocultos.
+- Falta: OK. Ao selecionar `Falta`, cliente, telefone, pre-pago e preco ficaram ocultos.
+- Encomenda: OK. Ao selecionar `Encomenda`, cliente, telefone, preco e pre-pago ficaram visiveis.
 - Console: OK. Sem erro critico observado.
-
-## Registros criados
-
-- `CODEX_V26 Geral layout`
-- `CODEX_V26 Falta layout`
+- Registros criados: nenhum.
 
 ## Falhas
 
@@ -77,7 +63,7 @@ POP tocado: NAO.
 
 ### Medias
 
-- Novo Registro > Medicamento solicitado abre o modal em categoria Geral. Impacto: operador precisa trocar manualmente a categoria para Medicamentos antes de salvar; o cadastro ainda funciona, mas o atalho do novo layout nao cumpre o comportamento esperado.
+- Nenhuma.
 
 ### Leves
 
@@ -85,4 +71,4 @@ POP tocado: NAO.
 
 ## Veredito
 
-Publicado com ressalva. Proxima correcao: ajustar o dropdown `Medicamento solicitado` para abrir o modal ja em `Medicamentos`.
+Publicado e aprovado. Dropdown `Novo registro > Medicamento solicitado` abre o modal diretamente em `Medicamentos`.
